@@ -96,4 +96,3 @@ if __name__ == "__main__":
     print("Iniciando script de inicialização/atualização do banco de dados...")
     initialize_database()
     print("Script de inicialização/atualização concluído.")
-
