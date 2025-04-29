@@ -1,98 +1,67 @@
 import os
+import sys
 import psycopg2
 from urllib.parse import urlparse
 
-# Tabelas a serem criadas (com adição de password_hash)
+# Tabelas a serem criadas
 CREATE_TABLES_SQL = [
     """
-    CREATE TABLE IF NOT EXISTS users (
+    DROP TABLE IF EXISTS users CASCADE;
+    """,
+    """
+    CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(80) UNIQUE NOT NULL,
         email VARCHAR(120) UNIQUE NOT NULL,
-        password_hash VARCHAR(128) NOT NULL, -- Adicionado para senha segura
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        -- Adicione colunas para tokens de API (Strava, Garmin) criptografados
-        -- strava_access_token TEXT,
-        -- strava_refresh_token TEXT,
-        -- strava_expires_at INTEGER,
-        -- garmin_token TEXT,
-        -- garmin_token_secret TEXT
-    );
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS activities (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) NOT NULL,
-        platform VARCHAR(50) NOT NULL, -- 'strava', 'garmin', 'manual'
-        platform_activity_id VARCHAR(100), -- ID da atividade na plataforma original
-        type VARCHAR(50), -- 'Run', 'Ride', etc.
-        start_time TIMESTAMP NOT NULL,
-        distance_km REAL,
-        duration_seconds INTEGER,
-        calories REAL,
-        donation_amount REAL,
+        password_hash VARCHAR(128) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """,
-    """
-    CREATE TABLE IF NOT EXISTS donation_items (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) NOT NULL,
-        title VARCHAR(200) NOT NULL,
-        description TEXT,
-        category VARCHAR(100),
-        location VARCHAR(200),
-        image_url TEXT,
-        status VARCHAR(50) DEFAULT 'available', -- 'available', 'reserved', 'donated'
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS interests (
-        id SERIAL PRIMARY KEY,
-        item_id INTEGER REFERENCES donation_items(id) NOT NULL,
-        interested_user_id INTEGER REFERENCES users(id) NOT NULL,
-        message TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(item_id, interested_user_id) -- Evita interesse duplicado
-    );
-    """
-    # Adicione aqui CREATE TABLE para patrocinadores, instituições, etc., se necessário
+    # Outras tabelas aqui...
 ]
 
 def initialize_database():
+    print("=== INICIANDO SCRIPT DE INICIALIZAÇÃO DO BANCO DE DADOS ===")
+    
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
-        print("Erro: Variável de ambiente DATABASE_URL não definida.")
-        return
-
+        print("ERRO: Variável de ambiente DATABASE_URL não definida.")
+        sys.exit(1)
+    
+    print(f"Conectando ao banco de dados com URL: {db_url[:20]}...")
+    
     conn = None
     try:
         # Conectar ao banco de dados PostgreSQL
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
-
-        print("Conectado ao banco de dados. Atualizando/Criando tabelas...")
-
-        # Executar comandos CREATE TABLE
-        for sql_command in CREATE_TABLES_SQL:
+        
+        print("Conectado ao banco de dados com sucesso!")
+        print("Iniciando criação/recriação de tabelas...")
+        
+        # Executar comandos SQL
+        for i, sql_command in enumerate(CREATE_TABLES_SQL):
+            print(f"Executando comando SQL #{i+1}...")
             cur.execute(sql_command)
-            print(f"Executado: {sql_command[:60]}...") # Log curto do comando
-
+            print(f"Comando SQL #{i+1} executado com sucesso!")
+        
         # Commit das alterações
         conn.commit()
-        print("Tabelas atualizadas/criadas com sucesso (ou já existiam).")
-
+        print("Todas as tabelas foram criadas/recriadas com sucesso!")
+        
         # Fechar comunicação
         cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(f"Erro ao conectar ou inicializar o banco de dados: {error}")
+    except Exception as e:
+        print(f"ERRO CRÍTICO ao conectar ou inicializar o banco de dados: {e}")
+        if conn:
+            conn.rollback()
+        sys.exit(1)
     finally:
         if conn is not None:
             conn.close()
             print("Conexão com o banco de dados fechada.")
+    
+    print("=== SCRIPT DE INICIALIZAÇÃO CONCLUÍDO COM SUCESSO ===")
 
 if __name__ == "__main__":
-    print("Iniciando script de inicialização/atualização do banco de dados...")
     initialize_database()
-    print("Script de inicialização/atualização concluído.")
