@@ -2,13 +2,14 @@ import os
 import psycopg2
 from urllib.parse import urlparse
 
-# Tabelas a serem criadas (adicione mais conforme necessário)
+# Tabelas a serem criadas (com adição de password_hash)
 CREATE_TABLES_SQL = [
     """
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(80) UNIQUE NOT NULL,
         email VARCHAR(120) UNIQUE NOT NULL,
+        password_hash VARCHAR(128) NOT NULL, -- Adicionado para senha segura
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         -- Adicione colunas para tokens de API (Strava, Garmin) criptografados
         -- strava_access_token TEXT,
@@ -71,7 +72,7 @@ def initialize_database():
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
 
-        print("Conectado ao banco de dados. Criando tabelas...")
+        print("Conectado ao banco de dados. Atualizando/Criando tabelas...")
 
         # Executar comandos CREATE TABLE
         for sql_command in CREATE_TABLES_SQL:
@@ -80,7 +81,7 @@ def initialize_database():
 
         # Commit das alterações
         conn.commit()
-        print("Tabelas criadas com sucesso (ou já existiam).")
+        print("Tabelas atualizadas/criadas com sucesso (ou já existiam).")
 
         # Fechar comunicação
         cur.close()
@@ -92,7 +93,7 @@ def initialize_database():
             print("Conexão com o banco de dados fechada.")
 
 if __name__ == "__main__":
-    print("Iniciando script de inicialização do banco de dados...")
+    print("Iniciando script de inicialização/atualização do banco de dados...")
     initialize_database()
-    print("Script de inicialização concluído.")
+    print("Script de inicialização/atualização concluído.")
 
