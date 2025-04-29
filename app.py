@@ -1,6 +1,7 @@
 import os
-from flask import Flask, render_template, session, g, flash
+from flask import Flask, render_template, session, g, flash, redirect, url_for
 from dotenv import load_dotenv
+from functools import wraps
 
 # Importar o blueprint de autenticação
 from auth import auth_bp
@@ -26,6 +27,16 @@ def load_logged_in_user():
     else:
         # Aqui você pode carregar mais dados do usuário do banco de dados se necessário
         g.user = {"id": user_id, "username": session.get("username")}
+
+# Decorator para exigir login
+def login_required(view):
+    @wraps(view)
+    def wrapped_view(**kwargs):
+        if g.user is None:
+            flash("Você precisa fazer login para acessar esta página.", "warning")
+            return redirect(url_for("auth.login"))
+        return view(**kwargs)
+    return wrapped_view
 
 # --- Rotas Principais --- 
 
@@ -56,6 +67,25 @@ def conectar_page():
     except Exception as e:
         print(f"Erro ao renderizar conectar-apps.html: {e}")
         return "Erro ao carregar a página de conexão. Verifique os logs.", 500
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    """Rota para o dashboard do usuário logado."""
+    # Aqui você buscaria dados reais do banco de dados
+    # Ex: últimas atividades, total doado, etc.
+    # Por enquanto, usaremos dados de exemplo
+    user_data = {
+        "username": g.user["username"],
+        "total_km": 125.5,
+        "total_donated": 251.00,
+        "last_activity": "Corrida de 10km em 28/04/2025"
+    }
+    try:
+        return render_template("dashboard.html", user=user_data)
+    except Exception as e:
+        print(f"Erro ao renderizar dashboard.html: {e}")
+        return "Erro ao carregar o dashboard. Verifique os logs.", 500
 
 # --- Bloco para execução local (não usado pelo Gunicorn no Railway) ---
 if __name__ == "__main__":
