@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Golden Runners</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+
+    <!-- Barra de Navegação (Exemplo - Adapte ou reutilize a sua)  -->
+    <nav class="bg-black p-4 text-white">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="{{ url_for("home") }}" class="text-2xl font-bold text-yellow-500">Golden Runners</a>
+            <div>
+                {% if g.user %}
+                    <span class="mr-4">Olá, {{ g.user.username }}!</span>
+                    <a href="{{ url_for("dashboard") }}" class="mr-4 hover:text-yellow-500">Dashboard</a>
+                    <a href="{{ url_for("auth.logout") }}" class="hover:text-yellow-500">Sair</a>
+                {% else %}
+                    <a href="{{ url_for("auth.login") }}" class="mr-4 hover:text-yellow-500">Entrar</a>
+                    <a href="{{ url_for("auth.register") }}" class="bg-yellow-500 hover:bg-yellow-600 px-3 py-1 rounded">Cadastrar</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo do Dashboard -->
+    <div class="container mx-auto mt-8 p-4">
+        <h1 class="text-3xl font-bold mb-6">Meu Dashboard</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="p-4 mb-4 text-sm rounded-lg 
+                          {% if category == 'error' %} bg-red-100 text-red-700 {% endif %}
+                          {% if category == 'success' %} bg-green-100 text-green-700 {% endif %}
+                          {% if category == 'info' %} bg-blue-100 text-blue-700 {% endif %}
+                          {% if category == 'warning' %} bg-yellow-100 text-yellow-700 {% endif %}"
+                   role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Card Resumo -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-2">Resumo</h2>
+                <p><strong>Total KM Percorridos:</strong> {{ user.total_km }} km</p>
+                <p><strong>Total Doado:</strong> R$ {{ "%.2f"|format(user.total_donated) }}</p>
+                <p><strong>Última Atividade:</strong> {{ user.last_activity }}</p>
+            </div>
+
+            <!-- Card Conectar Apps -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-2">Conectar Apps</h2>
+                <p class="mb-4">Sincronize suas atividades automaticamente.</p>
+                <a href="{{ url_for("conectar_page") }}" 
+                   class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Conectar
+                </a>
+            </div>
+
+            <!-- Card Mural de Doações -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-2">Mural de Doações</h2>
+                <p class="mb-4">Doe ou encontre itens.</p>
+                <a href="{{ url_for("mural_page") }}" 
+                   class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Ver Mural
+                </a>
+            </div>
+            
+            <!-- Adicionar mais cards conforme necessário -->
+
+        </div>
+    </div>
+
+</body>
+</html>
