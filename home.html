@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Runners - Transforme Exercícios em Doações</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .golden-gradient {
+            background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
+        }
+        .hero-pattern {
+            background-color: #000;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FFD700' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Navbar -->
+    <nav class="bg-black text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAwMDAiLz48cGF0aCBkPSJNMTAgMTBIMjBWMjBIMTBWMTBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDEwSDQwVjIwSDMwVjEwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBkPSJNMTAgMzBIMjBWNDBIMTBWMzBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDMwSDQwVjQwSDMwVjMwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik01IDI1TDEwIDIwTDEwIDMwTDUgMjVaIiBmaWxsPSIjRkZEMzAwIi8+PC9zdmc+" alt="Logo" class="h-10 w-10">
+                <span class="ml-3 text-xl font-bold">Golden Runners</span>
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#" class="hover:text-yellow-400">Início</a>
+                <a href="#" class="hover:text-yellow-400">Como Funciona</a>
+                <a href="#" class="hover:text-yellow-400">Impacto</a>
+                <a href="#" class="hover:text-yellow-400">Mural de Doações</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="#" class="hover:text-yellow-400">Entrar</a>
+                <a href="#" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-full">Cadastrar</a>
+            </div>
+            <button class="md:hidden focus:outline-none">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-pattern text-white py-20">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-6">Transforme seus exercícios em impacto social</h1>
+                    <p class="text-xl mb-8">Cada quilômetro percorrido ou caloria gasta se transforma em doações para quem precisa. Conecte seu app de fitness e comece a fazer a diferença.</p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <a href="#" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-full text-center">Comece Agora</a>
+                        <a href="#" class="border border-white hover:border-yellow-400 hover:text-yellow-400 font-bold py-3 px-6 rounded-full text-center">Saiba Mais</a>
+                    </div>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMxQTFBMUEiLz48Y2lyY2xlIGN4PSIyNTAiIGN5PSIyNTAiIHI9IjE1MCIgZmlsbD0iIzMzMzMzMyIvPjxwYXRoIGQ9Ik0yMDAgMTUwQzIwMCAxMjIuMzg2IDE3Mi42MTQgMTAwIDE0MCAxMDBDMTA3LjM4NiAxMDAgODAgMTIyLjM4NiA4MCAxNTBDODAgMTc3LjYxNCAxMDcuMzg2IDIwMCAxNDAgMjAwQzE3Mi42MTQgMjAwIDIwMCAxNzcuNjE0IDIwMCAxNTBaIiBmaWxsPSIjRkZEMzAwIi8+PHBhdGggZD0iTTM2MCAxNTBDMzYwIDEyMi4zODYgMzMyLjYxNCAxMDAgMzAwIDEwMEMyNjcuMzg2IDEwMCAyNDAgMTIyLjM4NiAyNDAgMTUwQzI0MCAxNzcuNjE0IDI2Ny4zODYgMjAwIDMwMCAyMDBDMzMyLjYxNCAyMDAgMzYwIDE3Ny42MTQgMzYwIDE1MFoiIGZpbGw9IiNGRkQzMDAiLz48cGF0aCBkPSJNMjgwIDI1MEMyODAgMjIyLjM4NiAyNTIuNjE0IDIwMCAyMjAgMjAwQzE4Ny4zODYgMjAwIDE2MCAyMjIuMzg2IDE2MCAyNTBDMTYwIDI3Ny42MTQgMTg3LjM4NiAzMDAgMjIwIDMwMEMyNTIuNjE0IDMwMCAyODAgMjc3LjYxNCAyODAgMjUwWiIgZmlsbD0iI0ZGRDMwMCIvPjxwYXRoIGQ9Ik0yMDAgMzUwQzIwMCAzMjIuMzg2IDE3Mi42MTQgMzAwIDE0MCAzMDBDMTA3LjM4NiAzMDAgODAgMzIyLjM4NiA4MCAzNTBDODAgMzc3LjYxNCAxMDcuMzg2IDQwMCAxNDAgNDAwQzE3Mi42MTQgNDAwIDIwMCAzNzcuNjE0IDIwMCAzNTBaIiBmaWxsPSIjRkZEMzAwIi8+PHBhdGggZD0iTTM2MCAzNTBDMzYwIDMyMi4zODYgMzMyLjYxNCAzMDAgMzAwIDMwMEMyNjcuMzg2IDMwMCAyNDAgMzIyLjM4NiAyNDAgMzUwQzI0MCAzNzcuNjE0IDI2Ny4zODYgNDAwIDMwMCA0MDBDMzMyLjYxNCA0MDAgMzYwIDM3Ny42MTQgMzYwIDM1MFoiIGZpbGw9IiNGRkQzMDAiLz48cGF0aCBkPSJNNDIwIDI1MEw0NTAgMjIwTDQ1MCAyODBMNDIwIDI1MFoiIGZpbGw9IiNGRkQzMDAiLz48cGF0aCBkPSJNMzgwIDI1MEw0MTAgMjIwTDQxMCAyODBMMzgwIDI1MFoiIGZpbGw9IiNGRkQzMDAiLz48cGF0aCBkPSJNMzQwIDI1MEwzNzAgMjIwTDM3MCAyODBMMzQwIDI1MFoiIGZpbGw9IiNGRkQzMDAiLz48L3N2Zz4=" alt="Runner Illustration" class="w-full max-w-md mx-auto">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">Como Funciona</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-gray-50 rounded-lg p-6 shadow-md">
+                    <div class="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">1</div>
+                    <h3 class="text-xl font-bold mb-3">Conecte seu app de fitness</h3>
+                    <p class="text-gray-700">Integre com Strava, Garmin ou outros apps para sincronizar automaticamente suas atividades físicas.</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-6 shadow-md">
+                    <div class="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">2</div>
+                    <h3 class="text-xl font-bold mb-3">Pratique exercícios</h3>
+                    <p class="text-gray-700">Corra, caminhe, pedale ou pratique qualquer atividade física. Cada quilômetro ou caloria conta!</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-6 shadow-md">
+                    <div class="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">3</div>
+                    <h3 class="text-xl font-bold mb-3">Gere impacto social</h3>
+                    <p class="text-gray-700">Seus exercícios são convertidos em doações para instituições de caridade, graças aos nossos patrocinadores.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact Stats -->
+    <section class="py-16 golden-gradient text-black">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">Nosso Impacto</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+                <div>
+                    <p class="text-4xl font-bold mb-2">12.458</p>
+                    <p class="text-xl">Km percorridos</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-bold mb-2">R$ 24.916</p>
+                    <p class="text-xl">Em doações</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-bold mb-2">1.245</p>
+                    <p class="text-xl">Corredores</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-bold mb-2">15</p>
+                    <p class="text-xl">Instituições beneficiadas</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Donation Wall Preview -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h2 class="text-3xl font-bold mb-6">Mural de Doações</h2>
+                    <p class="text-xl mb-8">Além de converter exercícios em doações, você também pode doar ou receber itens diretamente de outros usuários.</p>
+                    <a href="#" class="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-full inline-block">Ver Mural</a>
+                </div>
+                <div class="md:w-1/2 grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-lg shadow">
+                        <div class="bg-gray-200 h-32 rounded mb-3"></div>
+                        <h3 class="font-bold">Tênis de corrida</h3>
+                        <p class="text-sm text-gray-600">São Paulo, SP</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg shadow">
+                        <div class="bg-gray-200 h-32 rounded mb-3"></div>
+                        <h3 class="font-bold">Camiseta esportiva</h3>
+                        <p class="text-sm text-gray-600">Rio de Janeiro, RJ</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg shadow">
+                        <div class="bg-gray-200 h-32 rounded mb-3"></div>
+                        <h3 class="font-bold">Garrafa térmica</h3>
+                        <p class="text-sm text-gray-600">Belo Horizonte, MG</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg shadow">
+                        <div class="bg-gray-200 h-32 rounded mb-3"></div>
+                        <h3 class="font-bold">Relógio esportivo</h3>
+                        <p class="text-sm text-gray-600">Curitiba, PR</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sponsors -->
+    <section class="py-16 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">Nossos Patrocinadores</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-center">
+                    <div class="w-24 h-24 bg-gray-200 rounded"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-center">
+                    <div class="w-24 h-24 bg-gray-200 rounded"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-center">
+                    <div class="w-24 h-24 bg-gray-200 rounded"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-center">
+                    <div class="w-24 h-24 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+            <div class="text-center mt-10">
+                <a href="#" class="text-yellow-600 hover:text-yellow-800 font-bold">Torne-se um patrocinador →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-16 bg-black text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-6">Pronto para transformar seus exercícios em impacto social?</h2>
+            <p class="text-xl mb-8 max-w-2xl mx-auto">Junte-se a milhares de corredores que estão fazendo a diferença a cada passo.</p>
+            <a href="#" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-full text-xl inline-block">Comece Agora</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Golden Runners</h3>
+                    <p class="mb-4">Transformando exercícios em impacto social desde 2025.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="hover:text-yellow-400">
+                            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-yellow-400">
+                            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Links Rápidos</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-yellow-400">Início</a></li>
+                        <li><a href="#" class="hover:text-yellow-400">Como Funciona</a></li>
+                        <li><a href="#" class="hover:text-yellow-400">Impacto</a></li>
+                        <li><a href="#" class="hover:text-yellow-400">Mural de Doações</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Recursos</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-yellow-400">Conectar Apps</a></li>
+                        <li><a href="#" class="hover:text-yellow-400">Patrocinadores</a></li>
+                        <li><a href="#" class="hover:text-yellow-400">Instituições</a></li>
+                        <li><a href="#" class="hover:text-yellow-400">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+         
+(Content truncated due to size limit. Use line ranges to read in chunks)
