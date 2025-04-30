@@ -94,7 +94,7 @@ def login():
                     flash(f"Bem-vindo, {user_data[1]}!", "success")
                     # Redirecionar para o dashboard ou página inicial após login
                     # return redirect(url_for("dashboard")) # Exemplo
-                    return redirect(url_for("home")) # Redireciona para a home por enquanto
+                    return redirect(url_for("dashboard")) # Redireciona para o dashboard
 
             except (Exception, psycopg2.DatabaseError) as db_error:
                 error = f"Erro no banco de dados: {db_error}"
