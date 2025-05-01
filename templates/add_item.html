@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Item para Doação - Golden Runners</title>
+    <!-- Incluir CSS básico ou link para framework (ex: Bootstrap) se desejado -->
+</head>
+<body>
+    <h1>Adicionar Novo Item para Doação</h1>
+
+    <form method="POST" action="{{ url_for("add_item") }}"> <!-- A rota Flask será definida depois -->
+        <div>
+            <label for="title">Título:</label><br>
+            <input type="text" id="title" name="title" required><br>
+        </div>
+        
+        <div>
+            <label for="description">Descrição:</label><br>
+            <textarea id="description" name="description"></textarea><br>
+        </div>
+
+        <div>
+            <label for="category">Categoria:</label><br>
+            <input type="text" id="category" name="category" placeholder="Ex: Roupas, Eletrônicos, Móveis"><br>
+        </div>
+
+        <div>
+            <label for="location">Localização (Bairro/Cidade):</label><br>
+            <input type="text" id="location" name="location"><br>
+        </div>
+
+        <div>
+            <label for="image_url">URL da Imagem:</label><br>
+            <input type="url" id="image_url" name="image_url" placeholder="https://exemplo.com/imagem.jpg"><br>
+        </div>
+
+        <button type="submit">Adicionar Item</button>
+    </form>
+
+    <p><a href="{{ url_for("mural") }}">Voltar para o Mural</a></p>
+    <p><a href="{{ url_for("dashboard") }}">Voltar para o Dashboard</a></p>
+
+</body>
+</html>
