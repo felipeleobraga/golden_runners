@@ -9,6 +9,17 @@
         .golden-gradient {
             background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
         }
+        /* Estilo para mensagens flash */
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+        }
+        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .flash-info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -16,16 +27,28 @@
     <nav class="bg-black text-white shadow-lg">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAwMDAiLz48cGF0aCBkPSJNMTAgMTBIMjBWMjBIMTBWMTBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDEwSDQwVjIwSDMwVjEwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBkPSJNMTAgMzBIMjBWNDBIMTBWMzBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDMwSDQwVjQwSDMwVjMwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik01IDI1TDEwIDIwTDEwIDMwTDUgMjVaIiBmaWxsPSIjRkZEMzAwIi8+PC9zdmc+" alt="Logo" class="h-10 w-10">
-                <span class="ml-3 text-xl font-bold">Golden Runners</span>
+                <!-- Logo pode ser ajustada se tiver uma URL estática -->
+                <a href="{{ url_for('home') }}" class="flex items-center">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAwMDAiLz48cGF0aCBkPSJNMTAgMTBIMjBWMjBIMTBWMTBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDEwSDQwVjIwSDMwVjEwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBkPSJNMTAgMzBIMjBWNDBIMTBWMzBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDMwSDQwVjQwSDMwVjMwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik01IDI1TDEwIDIwTDEwIDMwTDUgMjVaIiBmaWxsPSIjRkZEMzAwIi8+PC9zdmc+" alt="Logo" class="h-10 w-10">
+                    <span class="ml-3 text-xl font-bold">Golden Runners</span>
+                </a>
             </div>
             <div class="hidden md:flex space-x-8">
-                <a href="#" class="hover:text-yellow-400">Dashboard</a>
-                <a href="#" class="hover:text-yellow-400">Atividades</a>
-                <a href="#" class="hover:text-yellow-400">Impacto</a>
-                <a href="#" class="text-yellow-400 font-bold">Mural de Doações</a>
+                <!-- Links da Navbar ajustados para usar url_for -->
+                <a href="{{ url_for('dashboard') }}" class="hover:text-yellow-400">Dashboard</a>
+                <a href="#" class="hover:text-yellow-400">Atividades</a> <!-- Rota ainda não implementada -->
+                <a href="#" class="hover:text-yellow-400">Impacto</a> <!-- Rota ainda não implementada -->
+                <a href="{{ url_for('mural_page') }}" class="text-yellow-400 font-bold">Mural de Doações</a>
             </div>
             <div class="flex items-center space-x-4">
+                {% if g.user %}
+                    <span class="text-gray-300">Olá, {{ g.user.username }}</span>
+                    <a href="{{ url_for('auth.logout') }}" class="hover:text-yellow-400">Sair</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="hover:text-yellow-400">Login</a>
+                    <a href="{{ url_for('auth.register') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
+                {% endif %}
+                <!-- Ícone de perfil e botão de menu mobile (funcionalidade JS não incluída) -->
                 <div class="relative">
                     <img src="https://via.placeholder.com/40" alt="Profile" class="h-10 w-10 rounded-full border-2 border-yellow-500">
                 </div>
@@ -40,6 +63,17 @@
 
     <!-- Main Content -->
     <div class="container mx-auto px-4 py-8">
+        <!-- Mensagens Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div>
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-3xl font-bold mb-2">Mural de Doações</h1>
@@ -49,186 +83,73 @@
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row justify-between items-center mb-8">
             <div class="flex space-x-2 mb-4 sm:mb-0">
+                <!-- Botões de filtro (funcionalidade não implementada no backend) -->
                 <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-full text-sm font-medium">Todos</button>
                 <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-full text-sm font-medium">Tênis</button>
                 <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-full text-sm font-medium">Roupas</button>
                 <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-full text-sm font-medium">Acessórios</button>
             </div>
-            <a href="#" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-full">Doar um Item</a>
+            <!-- Botão Doar um Item ajustado para usar url_for -->
+            <a href="{{ url_for('add_item') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-full">Doar um Item</a>
         </div>
 
         <!-- Donation Items Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <!-- Item 1 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">Disponível</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Tênis de Corrida Nike</h3>
-                    <p class="text-gray-600 text-sm mb-2">Tamanho 42, usado apenas 3 vezes</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Carlos S.</span>
+            <!-- Loop Jinja para iterar sobre os itens passados pelo backend -->
+            {% if items %}
+                {% for item in items %}
+                    <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <div class="h-48 bg-gray-200 relative">
+                            <!-- Imagem do item (se houver URL) -->
+                            {% if item.image_url %}
+                                <img src="{{ item.image_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <!-- Placeholder se não houver imagem -->
+                                <div class="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
+                            {% endif %}
+                            <!-- Badge de Status Dinâmico -->
+                            {% if item.status == 'available' %}
+                                <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">Disponível</span>
+                            {% elif item.status == 'reserved' %}
+                                <span class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">Reservado</span>
+                            {% elif item.status == 'donated' %}
+                                <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">Doado</span>
+                            {% endif %}
                         </div>
-                        <span class="text-xs text-gray-500">São Paulo, SP</span>
-                    </div>
-                    <div class="mt-4">
-                        <a href="#" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Tenho Interesse</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 2 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">Disponível</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Camiseta Esportiva Adidas</h3>
-                    <p class="text-gray-600 text-sm mb-2">Tamanho M, nova com etiqueta</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Ana P.</span>
+                        <div class="p-4">
+                            <!-- Título do Item como link para detalhes -->
+                            <h3 class="font-bold text-lg mb-1"><a href="{{ url_for('item_detail', item_id=item.id) }}" class="hover:text-yellow-600">{{ item.title }}</a></h3>
+                            <!-- Descrição (pode ser truncada se necessário) -->
+                            <p class="text-gray-600 text-sm mb-2">{{ item.description or 'Sem descrição' }}</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <!-- Info do doador (precisa buscar no backend ou passar junto) -->
+                                    <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
+                                    <span class="text-xs text-gray-500">{{ item.owner_username or 'Doador' }}</span> <!-- Assumindo que owner_username é passado -->
+                                </div>
+                                <!-- Localização -->
+                                <span class="text-xs text-gray-500">{{ item.location or 'Não informado' }}</span>
+                            </div>
+                            <div class="mt-4">
+                                <!-- Botão de Interesse/Status -->
+                                {% if item.status == 'available' %}
+                                    <!-- Link para a página de detalhes onde o interesse pode ser expresso -->
+                                    <a href="{{ url_for('item_detail', item_id=item.id) }}" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Ver Detalhes / Interesse</a>
+                                {% elif item.status == 'reserved' %}
+                                    <button disabled class="bg-gray-300 text-gray-600 text-sm font-bold py-2 px-4 rounded-full w-full block text-center cursor-not-allowed">Reservado</button>
+                                {% elif item.status == 'donated' %}
+                                    <button disabled class="bg-gray-300 text-gray-600 text-sm font-bold py-2 px-4 rounded-full w-full block text-center cursor-not-allowed">Doado</button>
+                                {% endif %}
+                            </div>
                         </div>
-                        <span class="text-xs text-gray-500">Rio de Janeiro, RJ</span>
                     </div>
-                    <div class="mt-4">
-                        <a href="#" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Tenho Interesse</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 3 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">Reservado</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Garrafa Térmica 750ml</h3>
-                    <p class="text-gray-600 text-sm mb-2">Em ótimo estado, sem arranhões</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Marcos T.</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Belo Horizonte, MG</span>
-                    </div>
-                    <div class="mt-4">
-                        <button disabled class="bg-gray-300 text-gray-600 text-sm font-bold py-2 px-4 rounded-full w-full block text-center cursor-not-allowed">Reservado</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 4 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">Disponível</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Relógio Esportivo Garmin</h3>
-                    <p class="text-gray-600 text-sm mb-2">Modelo Forerunner 235, usado</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Juliana R.</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Curitiba, PR</span>
-                    </div>
-                    <div class="mt-4">
-                        <a href="#" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Tenho Interesse</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 5 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">Disponível</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Mochila de Hidratação</h3>
-                    <p class="text-gray-600 text-sm mb-2">2L, perfeita para trilhas longas</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Pedro M.</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Brasília, DF</span>
-                    </div>
-                    <div class="mt-4">
-                        <a href="#" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Tenho Interesse</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 6 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">Doado</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Bermuda de Corrida</h3>
-                    <p class="text-gray-600 text-sm mb-2">Tamanho G, com bolsos</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Fernanda L.</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Salvador, BA</span>
-                    </div>
-                    <div class="mt-4">
-                        <button disabled class="bg-gray-300 text-gray-600 text-sm font-bold py-2 px-4 rounded-full w-full block text-center cursor-not-allowed">Doado</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 7 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">Disponível</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Luvas para Ciclismo</h3>
-                    <p class="text-gray-600 text-sm mb-2">Tamanho M, com proteção</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Ricardo N.</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Porto Alegre, RS</span>
-                    </div>
-                    <div class="mt-4">
-                        <a href="#" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Tenho Interesse</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 8 -->
-            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div class="h-48 bg-gray-200 relative">
-                    <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">Disponível</span>
-                </div>
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-1">Faixa de Braço para Celular</h3>
-                    <p class="text-gray-600 text-sm mb-2">Ajustável, à prova d'água</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <img src="https://via.placeholder.com/30" alt="User" class="h-6 w-6 rounded-full mr-2">
-                            <span class="text-xs text-gray-500">Camila B.</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Recife, PE</span>
-                    </div>
-                    <div class="mt-4">
-                        <a href="#" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Tenho Interesse</a>
-                    </div>
-                </div>
-            </div>
+                {% endfor %}
+            {% else %}
+                <p class="col-span-full text-center text-gray-500">Nenhum item disponível para doação no momento.</p>
+            {% endif %}
         </div>
 
-        <!-- Pagination -->
+        <!-- Pagination (funcionalidade não implementada no backend) -->
         <div class="mt-12 flex justify-center">
             <nav class="flex items-center space-x-2">
                 <a href="#" class="px-3 py-1 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">Anterior</a>
