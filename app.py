@@ -239,7 +239,7 @@ def item_detail(item_id):
 def express_interest(item_id):
     """Registra o interesse de um usuário em um item (placeholder)."""
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
-    print(f"User {g.user["id"]} expressed interest in item {item_id}")
+    print(f"User {g.user['id']} expressed interest in item {item_id}")
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
 
