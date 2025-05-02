@@ -81,7 +81,7 @@ def load_logged_in_user():
                     print(f"Strava token for user {user_id} expired. Needs refresh.")
                     # flash("Sua conexão com o Strava expirou. Por favor, conecte novamente.", "warning")
                     
-        except (Exception, psycopg2.DatabaseError) as db_error:
+        except Exception as db_error: # Catching broader Exception
             error_details = traceback.format_exc()
             print(f"!!! DETAILED DB ERROR loading Strava token: {db_error}\n{error_details}")
         finally:
@@ -113,17 +113,135 @@ def dashboard():
     except Exception as e: print(f"Render ERROR dashboard: {e}"); return "Erro ao carregar dashboard.", 500
 
 # --- Rotas do Mural de Doações --- 
-# (Omitidas para brevidade)
+
 @app.route("/mural")
-def mural_page(): pass
+def mural_page():
+    """Exibe o mural com os itens de doação."""
+    conn = None
+    items = []
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # Seleciona os itens, incluindo o nome de usuário do doador
+        cur.execute("""
+            SELECT di.*, u.username AS donor_username 
+            FROM donation_items di
+            JOIN users u ON di.user_id = u.id
+            ORDER BY di.created_at DESC
+        """)
+        items = cur.fetchall()
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as db_error:
+        error_details = traceback.format_exc()
+        print(f"!!! DB ERROR fetching mural items: {db_error}\n{error_details}")
+        flash("Erro ao carregar os itens do mural.", "error")
+    finally:
+        if conn:
+            conn.close()
+    
+    try:
+        return render_template("mural.html", items=items)
+    except Exception as render_error:
+        print(f"!!! Render ERROR mural: {render_error}")
+        return "Erro ao carregar a página do mural.", 500
+
 @app.route("/mural/adicionar", methods=("GET", "POST"))
 @login_required
-def add_item(): pass
+def add_item():
+    """Adiciona um novo item de doação."""
+    form_data = {}
+    if request.method == "POST":
+        conn = None
+        try:
+            # Coleta dados do formulário
+            category = request.form.get("category")
+            description = request.form.get("description")
+            location = request.form.get("location")
+            image_url = request.form.get("image_url") # TODO: Implementar upload de imagem
+            color = request.form.get("color")
+            size = request.form.get("size")
+            brand = request.form.get("brand")
+            whatsapp_link = request.form.get("whatsapp_link")
+            user_id = g.user["id"]
+
+            # Validação básica (pode ser melhorada)
+            if not category or not description or not location:
+                flash("Categoria, descrição e localização são obrigatórios.", "warning")
+                form_data = request.form # Mantém os dados no formulário
+                return render_template("add_item.html", form_data=form_data)
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+            sql = """INSERT INTO donation_items 
+                     (user_id, category, description, location, image_url, color, size, brand, whatsapp_link)
+                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+            cur.execute(sql, (user_id, category, description, location, image_url, color, size, brand, whatsapp_link))
+            conn.commit()
+            cur.close()
+            flash("Item adicionado com sucesso!", "success")
+            return redirect(url_for("mural_page"))
+
+        except (Exception, psycopg2.DatabaseError) as db_error:
+            error_details = traceback.format_exc()
+            print(f"!!! DB ERROR adding item: {db_error}\n{error_details}")
+            flash("Erro ao adicionar o item no banco de dados.", "error")
+            if conn: conn.rollback()
+            form_data = request.form # Mantém os dados no formulário
+        finally:
+            if conn:
+                conn.close()
+    
+    # Se GET ou se houve erro no POST, renderiza o formulário
+    try:
+        print("DEBUG: Attempting to render add_item.html for GET request")
+        return render_template("add_item.html", form_data=form_data)
+    except Exception as render_error:
+        print(f"!!! Render ERROR add_item: {render_error}")
+        return "Erro ao carregar o formulário de adição.", 500
+
 @app.route("/item/<int:item_id>")
-def item_detail(item_id): pass
+def item_detail(item_id):
+    """Exibe os detalhes de um item específico."""
+    conn = None
+    item = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # Seleciona o item e o nome de usuário do doador
+        cur.execute("""
+            SELECT di.*, u.username AS donor_username 
+            FROM donation_items di
+            JOIN users u ON di.user_id = u.id
+            WHERE di.id = %s
+        """, (item_id,))
+        item = cur.fetchone()
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as db_error:
+        error_details = traceback.format_exc()
+        print(f"!!! DB ERROR fetching item detail {item_id}: {db_error}\n{error_details}")
+        flash("Erro ao buscar detalhes do item.", "error")
+    finally:
+        if conn:
+            conn.close()
+
+    if item is None:
+        flash("Item não encontrado.", "warning")
+        return redirect(url_for("mural_page"))
+
+    try:
+        return render_template("item_detail.html", item=item)
+    except Exception as render_error:
+        print(f"!!! Render ERROR item_detail {item_id}: {render_error}")
+        return "Erro ao carregar a página de detalhes do item.", 500
+
 @app.route("/item/<int:item_id>/interesse", methods=["POST"])
 @login_required
-def express_interest(item_id): pass
+def express_interest(item_id):
+    """Registra o interesse de um usuário em um item (placeholder)."""
+    # Lógica futura: registrar interesse no banco, notificar doador, etc.
+    print(f"User {g.user["id"]} expressed interest in item {item_id}")
+    flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
+    return redirect(url_for("item_detail", item_id=item_id))
 
 # --- Rotas de Conexão Strava --- 
 
@@ -144,14 +262,34 @@ def strava_callback():
     if request.args.get("state") != session.pop("oauth_state", None):
         flash("Erro de validação de estado (CSRF?).", "error"); print("OAuth state mismatch!"); return redirect(url_for("dashboard"))
     if "error" in request.args:
-        flash(f"Erro na autorização Strava: {request.args.get('error')}.", "error"); print(f"Strava auth error: {request.args.get('error')}"); return redirect(url_for("dashboard"))
+        flash(f"Erro na autorização Strava: {request.args.get("error")}.", "error"); print(f"Strava auth error: {request.args.get("error")}"); return redirect(url_for("dashboard"))
     code = request.args.get("code")
     if not code: flash("Código Strava não recebido.", "error"); print("Strava code not received."); return redirect(url_for("dashboard"))
 
     conn = None
     try:
         strava = OAuth2Session(STRAVA_CLIENT_ID, redirect_uri=STRAVA_REDIRECT_URI)
+        print(f"Attempting to fetch token from {STRAVA_TOKEN_URL} with code: {code}") # Log Adicional
+        # Log dos parâmetros que serão enviados (exceto o secret)
+        fetch_params = {
+            "client_id": STRAVA_CLIENT_ID,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": STRAVA_REDIRECT_URI
+        }
+        print(f"Fetch token parameters (excluding secret): {fetch_params}")
+        
+        # Tenta buscar o token
         token = strava.fetch_token(STRAVA_TOKEN_URL, client_secret=STRAVA_CLIENT_SECRET, code=code, include_client_id=True)
+        
+        print(f"Received token response: {token}") # Log Adicional
+
+        # Verifica se o token foi recebido corretamente
+        if not token or "access_token" not in token:
+             print("!!! Access token missing in Strava response!")
+             flash("Erro ao obter token de acesso do Strava. Resposta inesperada.", "error")
+             return redirect(url_for("dashboard"))
+
         access_token = token.get("access_token")
         refresh_token = token.get("refresh_token")
         expires_at_dt = datetime.datetime.fromtimestamp(token.get("expires_at"), tz=datetime.timezone.utc)
@@ -172,8 +310,10 @@ def strava_callback():
         flash("Conta Strava conectada!", "success")
     except Exception as e:
         error_details = traceback.format_exc(); print(f"!!! ERROR fetching/saving Strava token: {e}\n{error_details}")
-        flash("Erro ao conectar com Strava.", "error"); conn.rollback() if conn else None
-    finally: conn.close() if conn else None
+        flash("Erro ao conectar com Strava.", "error")
+        if conn: conn.rollback() # Rollback em caso de erro no DB
+    finally: 
+        if conn: conn.close()
     return redirect(url_for("dashboard"))
 
 @app.route("/strava/disconnect", methods=["POST"])
@@ -273,7 +413,7 @@ def strava_fetch_activities():
                 if cur.rowcount > 0:
                     activities_saved += 1
             except Exception as insert_err:
-                print(f"Error inserting activity {activity['id']}: {insert_err}")
+                print(f"Error inserting activity {activity["id"]}: {insert_err}")
                 conn.rollback() # Desfaz a inserção da atividade atual em caso de erro
                 # Considerar logar o erro e continuar com a próxima atividade
 
