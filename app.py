@@ -113,8 +113,40 @@ def home():
 def dashboard():
     user_data = {"username": g.user["username"], "total_km": 0, "total_donated": 0, "last_activity": "N/A"}
     strava_connected = bool(g.strava_token_data)
-    try: return render_template("dashboard.html", user=user_data, strava_connected=strava_connected)
-    except Exception as e: print(f"Render ERROR dashboard: {e}"); return "Erro ao carregar dashboard.", 500
+    strava_activities = []
+    conn = None
+
+    if strava_connected:
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            # Busca as 5 atividades mais recentes do usuário
+            cur.execute("""
+                SELECT id, name, distance, moving_time, type, start_date
+                FROM strava_activities
+                WHERE user_id = %s
+                ORDER BY start_date DESC
+                LIMIT 5
+            """, (g.user["id"],))
+            strava_activities = cur.fetchall()
+            cur.close()
+            print(f"Fetched {len(strava_activities)} activities for user {g.user['id']}")
+        except (Exception, psycopg2.DatabaseError) as db_error:
+            error_details = traceback.format_exc()
+            print(f"!!! DB ERROR fetching Strava activities for dashboard: {db_error}\n{error_details}")
+            flash("Erro ao buscar atividades recentes do Strava.", "error")
+        finally:
+            if conn:
+                conn.close()
+
+    try: 
+        return render_template("dashboard.html", 
+                               user=user_data, 
+                               strava_connected=strava_connected,
+                               strava_activities=strava_activities) # Passa as atividades para o template
+    except Exception as e: 
+        print(f"Render ERROR dashboard: {e}"); 
+        return "Erro ao carregar dashboard.", 500
 
 # --- Rotas do Mural de Doações --- 
 
@@ -356,123 +388,118 @@ def strava_disconnect():
         user_id = g.user["id"]
         conn = get_db_connection(); cur = conn.cursor()
         cur.execute("DELETE FROM strava_tokens WHERE user_id = %s", (user_id,))
+        # Também deletar atividades associadas?
+        # cur.execute("DELETE FROM strava_activities WHERE user_id = %s", (user_id,))
         conn.commit(); cur.close()
         print(f"Strava token deleted from DB for user {user_id}")
-        g.strava_token_data = None
-        flash("Conta Strava desconectada.", "info")
-    except Exception as db_error:
+        flash("Conta Strava desconectada.", "success")
+    except (Exception, psycopg2.DatabaseError) as db_error:
         error_details = traceback.format_exc(); print(f"!!! DB ERROR disconnecting Strava: {db_error}\n{error_details}")
-        flash("Erro ao desconectar Strava.", "error"); conn.rollback() if conn else None
-    finally: conn.close() if conn else None
-    # Redireciona para a página de conexão após desconectar
-    return redirect(url_for("conectar_page")) 
-
-# --- Rota de Busca de Atividades Strava --- 
+        flash("Erro ao desconectar a conta Strava.", "error")
+        if conn: conn.rollback()
+    finally:
+        if conn: conn.close()
+    return redirect(url_for("conectar_page"))
 
 @app.route("/strava/fetch", methods=["POST"])
 @login_required
 def strava_fetch_activities():
-    """Busca atividades recentes do Strava e salva no DB."""
     if not g.strava_token_data:
         flash("Conecte sua conta Strava primeiro.", "warning")
         return redirect(url_for("conectar_page"))
 
-    access_token = g.strava_token_data.get("access_token")
-    strava_athlete_id = g.strava_token_data.get("strava_athlete_id")
-    user_id = g.user["id"]
-    
-    # Endpoint da API do Strava para buscar atividades do atleta logado
-    activities_url = f"{STRAVA_API_BASE_URL}/athlete/activities"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    
-    # Parâmetros opcionais: buscar atividades depois de uma certa data/hora
-    # TODO: Buscar a data da última atividade importada do DB para evitar buscar tudo sempre
-    # params = {"after": timestamp_da_ultima_atividade}
-    params = {"per_page": 50} # Busca as últimas 50 atividades por enquanto
-
+    access_token = g.strava_token_data["access_token"]
+    strava_session = OAuth2Session(token={"access_token": access_token})
     conn = None
-    activities_fetched = 0
-    activities_saved = 0
+    imported_count = 0
+    skipped_count = 0
+
     try:
-        print(f"Fetching Strava activities for user {user_id}...")
-        response = requests.get(activities_url, headers=headers, params=params)
-        response.raise_for_status() # Lança erro para status HTTP >= 400
+        # Busca atividades da API do Strava (ex: últimas 30)
+        activities_url = f"{STRAVA_API_BASE_URL}/athlete/activities"
+        params = {"per_page": 30} # Pode ajustar ou adicionar filtros de data
+        response = strava_session.get(activities_url, params=params)
+        response.raise_for_status() # Lança erro para respostas != 2xx
         activities = response.json()
-        activities_fetched = len(activities)
-        print(f"Fetched {activities_fetched} activities from Strava.")
+        print(f"Fetched {len(activities)} activities from Strava API for user {g.user['id']}")
 
-        if activities_fetched > 0:
-            conn = get_db_connection()
-            cur = conn.cursor()
-            sql = """INSERT INTO strava_activities 
-                     (id, user_id, strava_athlete_id, name, distance, moving_time, elapsed_time, 
-                      total_elevation_gain, type, start_date, timezone, start_latlng, end_latlng, 
-                      map_summary_polyline)
-                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                     ON CONFLICT (id) DO NOTHING; -- Ignora atividades já existentes"""
-            
-            for activity in activities:
-                try:
-                    # Converte start_date para datetime object com timezone
-                    start_date_dt = datetime.datetime.fromisoformat(activity["start_date"].replace("Z", "+00:00"))
-                    
-                    # Converte latlng para string (ou pode usar tipo POINT se preferir)
-                    start_latlng_str = ",".join(map(str, activity.get("start_latlng", [])))
-                    end_latlng_str = ",".join(map(str, activity.get("end_latlng", [])))
-                    
-                    cur.execute(sql, (
-                        activity["id"],
-                        user_id,
-                        strava_athlete_id,
-                        activity.get("name"),
-                        activity.get("distance", 0),
-                        activity.get("moving_time", 0),
-                        activity.get("elapsed_time", 0),
-                        activity.get("total_elevation_gain", 0),
-                        activity.get("type"),
-                        start_date_dt,
-                        activity.get("timezone"),
-                        start_latlng_str if start_latlng_str else None,
-                        end_latlng_str if end_latlng_str else None,
-                        activity.get("map", {}).get("summary_polyline")
-                    ))
-                    # Verifica se a inserção ocorreu (afetou 1 linha)
-                    if cur.rowcount > 0:
-                        activities_saved += 1
-                except (Exception, psycopg2.DatabaseError) as insert_err:
-                    # Log detalhado do erro de inserção
-                    activity_id = activity.get("id", "UNKNOWN")
-                    print(f"!!! Error inserting activity {activity_id}: {insert_err}")
-                    print(f"Activity data: {activity}") # Loga os dados da atividade com erro
-                    conn.rollback() # Desfaz a transação atual para esta atividade
-                    # Continua para a próxima atividade
-                    continue 
-            
-            conn.commit()
-            cur.close()
-            flash(f"{activities_saved} novas atividades do Strava importadas com sucesso!", "success")
-        else:
-            flash("Nenhuma nova atividade encontrada no Strava.", "info")
+        if not activities:
+            flash("Nenhuma atividade recente encontrada no Strava.", "info")
+            return redirect(url_for("dashboard"))
 
-    except requests.exceptions.RequestException as req_err:
-        print(f"!!! Strava API request error: {req_err}")
-        flash("Erro ao buscar atividades do Strava. Verifique sua conexão ou tente mais tarde.", "error")
-    except (Exception, psycopg2.DatabaseError) as db_err:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Insere ou atualiza atividades no banco
+        sql = """INSERT INTO strava_activities 
+                 (id, user_id, strava_athlete_id, name, distance, moving_time, elapsed_time, type, start_date, timezone, start_latlng, end_latlng, map_summary_polyline)
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 ON CONFLICT (id) DO UPDATE SET
+                     name = EXCLUDED.name, distance = EXCLUDED.distance, moving_time = EXCLUDED.moving_time,
+                     elapsed_time = EXCLUDED.elapsed_time, type = EXCLUDED.type, start_date = EXCLUDED.start_date,
+                     timezone = EXCLUDED.timezone, start_latlng = EXCLUDED.start_latlng, end_latlng = EXCLUDED.end_latlng,
+                     map_summary_polyline = EXCLUDED.map_summary_polyline, imported_at = NOW();"""
+
+        for activity in activities:
+            try:
+                # Converte start_date para datetime object com timezone
+                start_date_dt = datetime.datetime.fromisoformat(activity["start_date"].replace("Z", "+00:00"))
+                
+                # Converte latlng para string (ou pode usar tipo point se o DB suportar)
+                start_latlng_str = str(activity.get("start_latlng")) if activity.get("start_latlng") else None
+                end_latlng_str = str(activity.get("end_latlng")) if activity.get("end_latlng") else None
+                map_polyline = activity.get("map", {}).get("summary_polyline")
+
+                cur.execute(sql, (
+                    activity["id"],
+                    g.user["id"],
+                    activity["athlete"]["id"],
+                    activity["name"],
+                    activity.get("distance", 0.0),
+                    activity.get("moving_time", 0),
+                    activity.get("elapsed_time", 0),
+                    activity.get("type", "Unknown"),
+                    start_date_dt,
+                    activity.get("timezone"),
+                    start_latlng_str,
+                    end_latlng_str,
+                    map_polyline
+                ))
+                imported_count += 1
+            except psycopg2.IntegrityError as ie:
+                # Pode acontecer se houver conflito não tratado pelo ON CONFLICT (raro)
+                conn.rollback() # Desfaz a transação atual para continuar com as próximas
+                print(f"Skipping activity {activity['id']} due to DB integrity error: {ie}")
+                skipped_count += 1
+            except Exception as insert_error:
+                conn.rollback()
+                print(f"!!! ERROR inserting/updating activity {activity['id']}: {insert_error}")
+                skipped_count += 1
+                # Considerar parar ou continuar dependendo da gravidade
+
+        conn.commit()
+        cur.close()
+        flash(f"{imported_count} atividades do Strava importadas/atualizadas. {skipped_count} ignoradas.", "success")
+
+    except requests.exceptions.RequestException as api_error:
+        print(f"!!! Strava API ERROR fetching activities: {api_error}")
+        flash("Erro ao buscar atividades da API do Strava.", "error")
+    except (Exception, psycopg2.DatabaseError) as db_error:
         error_details = traceback.format_exc()
-        print(f"!!! DB ERROR saving activities: {db_err}\n{error_details}")
-        flash("Erro ao salvar atividades no banco de dados.", "error")
+        print(f"!!! DB ERROR saving Strava activities: {db_error}\n{error_details}")
+        flash("Erro ao salvar atividades do Strava no banco de dados.", "error")
         if conn: conn.rollback()
     finally:
         if conn:
             conn.close()
 
-    return redirect(url_for("conectar_page"))
+    return redirect(url_for("dashboard"))
 
 # --- Execução da Aplicação --- 
 
 if __name__ == "__main__":
-    # Define a porta a partir da variável de ambiente PORT ou usa 5000 como padrão
-    port = int(os.environ.get("PORT", 5000))
-    # Executa a aplicação Flask
-    # host="0.0.0.0" permite que a aplicação seja acessível externamente
-    app.run(host="0.0.0.0", port=port, debug=True) # debug=True útil para desenvolvimento
+    # O Flask Development Server não é recomendado para produção.
+    # Use um servidor WSGI como Gunicorn ou uWSGI.
+    # Ex: gunicorn --bind 0.0.0.0:5000 app:app
+    app.run(debug=True, host="0.0.0.0", port=5000)
+
