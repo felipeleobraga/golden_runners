@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adicionar Item para Doação - Golden Runners</title>
+    <title>Doar um Item - Golden Runners</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         /* Estilos adicionais podem ser colocados aqui se necessário */
@@ -24,24 +24,24 @@
     <nav class="bg-black text-white shadow-lg">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center">
-                <a href="{{ url_for('home') }}" class="flex items-center">
+                <a href="{{ url_for("home") }}" class="flex items-center">
                     <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAwMDAiLz48cGF0aCBkPSJNMTAgMTBIMjBWMjBIMTBWMTBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDEwSDQwVjIwSDMwVjEwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBkPSJNMTAgMzBIMjBWNDBIMTBWMzBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDMwSDQwVjQwSDMwVjMwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik01IDI1TDEwIDIwTDEwIDMwTDUgMjVaIiBmaWxsPSIjRkZEMzAwIi8+PC9zdmc+" alt="Logo" class="h-10 w-10">
                     <span class="ml-3 text-xl font-bold">Golden Runners</span>
                 </a>
             </div>
             <div class="hidden md:flex space-x-8">
-                <a href="{{ url_for('dashboard') }}" class="hover:text-yellow-400">Dashboard</a>
+                <a href="{{ url_for("dashboard") }}" class="hover:text-yellow-400">Dashboard</a>
                 <a href="#" class="hover:text-yellow-400">Atividades</a>
                 <a href="#" class="hover:text-yellow-400">Impacto</a>
-                <a href="{{ url_for('mural_page') }}" class="hover:text-yellow-400">Mural de Doações</a>
+                <a href="{{ url_for("mural_page") }}" class="hover:text-yellow-400">Mural de Doações</a>
             </div>
             <div class="flex items-center space-x-4">
                 {% if g.user %}
                     <span class="text-gray-300">Olá, {{ g.user.username }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="hover:text-yellow-400">Sair</a>
+                    <a href="{{ url_for("auth.logout") }}" class="hover:text-yellow-400">Sair</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="hover:text-yellow-400">Login</a>
-                    <a href="{{ url_for('auth.register') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
+                    <a href="{{ url_for("auth.login") }}" class="hover:text-yellow-400">Login</a>
+                    <a href="{{ url_for("auth.register") }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
                 {% endif %}
                 <div class="relative">
                     <img src="https://via.placeholder.com/40" alt="Profile" class="h-10 w-10 rounded-full border-2 border-yellow-500">
@@ -68,50 +68,74 @@
             {% endif %}
         {% endwith %}
 
-        <h1 class="text-3xl font-bold mb-6">Adicionar Novo Item para Doação</h1>
+        <h1 class="text-3xl font-bold mb-6">Doar um Novo Item</h1>
 
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <form method="POST" action="{{ url_for('add_item') }}">
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto">
+            <form method="POST" action="{{ url_for("add_item") }}">
+                {{ form.csrf_token }} <!-- Se estiver usando CSRF com WTForms -->
+
                 <div class="mb-4">
-                    <label for="title" class="block text-gray-700 text-sm font-bold mb-2">Título:</label>
-                    <input type="text" id="title" name="title" required 
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           value="{{ form_data.title if form_data else '' }}">
-                </div>
-                
-                <div class="mb-4">
-                    <label for="description" class="block text-gray-700 text-sm font-bold mb-2">Descrição:</label>
-                    <textarea id="description" name="description" rows="4"
-                              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">{{ form_data.description if form_data else '' }}</textarea>
+                    <label for="title" class="block text-gray-700 text-sm font-bold mb-2">Título do Item <span class="text-red-500">*</span></label>
+                    <input type="text" id="title" name="title" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Ex: Tênis de Corrida Nike Tam 42">
                 </div>
 
                 <div class="mb-4">
-                    <label for="category" class="block text-gray-700 text-sm font-bold mb-2">Categoria:</label>
-                    <input type="text" id="category" name="category" placeholder="Ex: Roupas, Eletrônicos, Móveis"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           value="{{ form_data.category if form_data else '' }}">
+                    <label for="description" class="block text-gray-700 text-sm font-bold mb-2">Descrição <span class="text-red-500">*</span></label>
+                    <textarea id="description" name="description" required rows="4" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Descreva o estado do item, detalhes importantes, etc."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="category" class="block text-gray-700 text-sm font-bold mb-2">Categoria <span class="text-red-500">*</span></label>
+                        <select id="category" name="category" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="" disabled selected>Selecione uma categoria</option>
+                            <option value="Roupas">Roupas</option>
+                            <option value="Calçados">Calçados</option>
+                            <option value="Acessórios">Acessórios</option>
+                            <option value="Equipamentos">Equipamentos</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="brand" class="block text-gray-700 text-sm font-bold mb-2">Marca</label>
+                        <input type="text" id="brand" name="brand" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Ex: Nike, Adidas, Garmin">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="color" class="block text-gray-700 text-sm font-bold mb-2">Cor</label>
+                        <input type="text" id="color" name="color" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Ex: Preto, Azul, Colorido">
+                    </div>
+                    <div>
+                        <label for="size" class="block text-gray-700 text-sm font-bold mb-2">Tamanho</label>
+                        <input type="text" id="size" name="size" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Ex: M, 42, Único">
+                    </div>
                 </div>
 
                 <div class="mb-4">
-                    <label for="location" class="block text-gray-700 text-sm font-bold mb-2">Localização (Bairro/Cidade):</label>
-                    <input type="text" id="location" name="location"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           value="{{ form_data.location if form_data else '' }}">
+                    <label for="location" class="block text-gray-700 text-sm font-bold mb-2">Bairro / Cidade <span class="text-red-500">*</span></label>
+                    <input type="text" id="location" name="location" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Ex: Copacabana, Rio de Janeiro">
+                </div>
+
+                <div class="mb-4">
+                    <label for="whatsapp_link" class="block text-gray-700 text-sm font-bold mb-2">Link do WhatsApp (Opcional)</label>
+                    <input type="url" id="whatsapp_link" name="whatsapp_link" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="https://wa.me/5521...">
+                    <p class="text-xs text-gray-600 mt-1">Seu número ficará visível para interessados. Use o formato https://wa.me/SEUNUMERO (com código do país).</p>
                 </div>
 
                 <div class="mb-6">
-                    <label for="image_url" class="block text-gray-700 text-sm font-bold mb-2">URL da Imagem:</label>
-                    <input type="url" id="image_url" name="image_url" placeholder="https://exemplo.com/imagem.jpg"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           value="{{ form_data.image_url if form_data else '' }}">
+                    <label for="image_url" class="block text-gray-700 text-sm font-bold mb-2">URL da Imagem <span class="text-red-500">*</span></label>
+                    <input type="url" id="image_url" name="image_url" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="https://...">
+                    <p class="text-xs text-gray-600 mt-1">Hospede a imagem em um serviço como <a href="https://imgur.com/upload" target="_blank" class="text-blue-500 hover:underline">Imgur</a> ou Google Drive (link público) e cole a URL direta da imagem aqui.</p>
                 </div>
 
                 <div class="flex items-center justify-between">
                     <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Adicionar Item
                     </button>
-                    <a href="{{ url_for('mural_page') }}" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
-                        Voltar para o Mural
+                    <a href="{{ url_for("mural_page") }}" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
+                        Cancelar
                     </a>
                 </div>
             </form>
