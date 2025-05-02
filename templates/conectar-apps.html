@@ -73,26 +73,26 @@
         <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
             <h2 class="text-xl font-semibold mb-4">Strava</h2>
             
-            {% if strava_connected %}
-                <p class="text-green-600 mb-4">Sua conta Strava está conectada!</p>
-                <!-- Botão para buscar atividades -->
-                <form method="POST" action="{{ url_for('strava_fetch_activities') }}" class="inline-block mr-2 mb-2">
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Buscar Atividades Recentes
-                    </button>
-                </form>
-                <!-- Botão para desconectar -->
-                <form method="POST" action="{{ url_for('strava_disconnect') }}" class="inline-block">
-                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Desconectar Strava
-                    </button>
-                </form>
-            {% else %}
-                <p class="text-gray-600 mb-4">Conecte sua conta Strava para importar suas atividades automaticamente.</p>
-                <a href="{{ url_for('strava_authorize') }}" class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Conectar com Strava
-                </a>
-            {% endif %}
+            <!-- REMOVIDO CONDICIONAL PARA TESTE -->
+            <p class="text-green-600 mb-4">Sua conta Strava está conectada! (Texto exibido para teste)</p>
+            <!-- Botão para buscar atividades -->
+            <form method="POST" action="{{ url_for('strava_fetch_activities') }}" class="inline-block mr-2 mb-2">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Buscar Atividades Recentes
+                </button>
+            </form>
+            <!-- Botão para desconectar -->
+            <form method="POST" action="{{ url_for('strava_disconnect') }}" class="inline-block mr-2 mb-2">
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Desconectar Strava
+                </button>
+            </form>
+            
+            <p class="text-gray-600 my-4">Conecte sua conta Strava para importar suas atividades automaticamente. (Texto exibido para teste)</p>
+            <a href="{{ url_for('strava_authorize') }}" class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                Conectar com Strava
+            </a>
+            <!-- FIM DA REMOÇÃO CONDICIONAL -->
 
             <hr class="my-6">
 
