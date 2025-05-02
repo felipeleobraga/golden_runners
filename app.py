@@ -113,6 +113,7 @@ def mural_page():
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         # Modificado: Selecionar mais campos necessários para o template
+        # TODO: Atualizar para incluir os novos campos (color, size, brand) se forem exibidos no mural
         cur.execute("SELECT di.id, di.user_id, di.title, di.description, di.category, di.location, di.image_url, di.status, u.username as owner_username FROM donation_items di JOIN users u ON di.user_id = u.id ORDER BY di.created_at DESC")
         items = cur.fetchall()
         cur.close()
@@ -139,26 +140,55 @@ def mural_page():
 def add_item():
     """Rota para adicionar um novo item de doação (GET e POST)."""
     if request.method == "POST":
+        # Campos obrigatórios
         title = request.form.get("title")
         description = request.form.get("description")
         category = request.form.get("category")
         location = request.form.get("location")
         image_url = request.form.get("image_url")
+        # Campos opcionais
+        brand = request.form.get("brand")
+        color = request.form.get("color")
+        size = request.form.get("size")
+        whatsapp_link = request.form.get("whatsapp_link")
+        
         user_id = g.user["id"]
         error = None
         conn = None
 
+        # Validações básicas (podem ser expandidas)
         if not title:
             error = "O título do item é obrigatório."
+        elif not description:
+            error = "A descrição é obrigatória."
+        elif not category:
+            error = "A categoria é obrigatória."
+        elif not location:
+            error = "A localização (Bairro/Cidade) é obrigatória."
+        elif not image_url:
+            error = "A URL da imagem é obrigatória."
+        # Adicionar validação de formato para whatsapp_link e image_url se necessário
 
         if error is None:
             try:
                 conn = get_db_connection()
                 cur = conn.cursor()
-                cur.execute(
-                    "INSERT INTO donation_items (user_id, title, description, category, location, image_url, status) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                    (user_id, title, description, category, location, image_url, 'available') # Status inicial 'available'
+                # Query SQL atualizada para incluir os novos campos
+                sql = """
+                    INSERT INTO donation_items 
+                    (user_id, title, description, category, location, image_url, brand, color, size, whatsapp_link, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                # Tupla de valores atualizada
+                values = (
+                    user_id, title, description, category, location, image_url, 
+                    brand if brand else None, # Salva None se opcional estiver vazio
+                    color if color else None,
+                    size if size else None,
+                    whatsapp_link if whatsapp_link else None,
+                    'available' # Status inicial
                 )
+                cur.execute(sql, values)
                 conn.commit()
                 cur.close()
                 flash("Item adicionado para doação com sucesso!", "success")
@@ -177,6 +207,7 @@ def add_item():
             flash(error, "error")
             # Renderiza o form novamente em caso de erro, mantendo os dados (se necessário)
             try:
+                # Passa os dados do formulário de volta para repopular
                 return render_template("add_item.html", form_data=request.form)
             except Exception as render_err:
                 # Log explícito do erro de renderização no POST
@@ -187,7 +218,8 @@ def add_item():
     # Método GET: apenas exibe o formulário
     try:
         print("DEBUG: Attempting to render add_item.html for GET request") # Log de depuração
-        return render_template("add_item.html")
+        # Passa um dicionário vazio para form_data no GET inicial
+        return render_template("add_item.html", form_data={})
     except Exception as e:
         # Log explícito e detalhado do erro de renderização no GET
         error_details = traceback.format_exc()
@@ -205,6 +237,7 @@ def item_detail(item_id):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         # Seleciona todos os detalhes do item e nome do dono
+        # TODO: Atualizar para incluir os novos campos (color, size, brand, whatsapp_link)
         cur.execute("SELECT di.*, u.username as owner_username FROM donation_items di JOIN users u ON di.user_id = u.id WHERE di.id = %s", (item_id,))
         item = cur.fetchone()
         
