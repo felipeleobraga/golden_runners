@@ -413,7 +413,7 @@ def strava_fetch_activities():
                 if cur.rowcount > 0:
                     activities_saved += 1
             except Exception as insert_err:
-                print(f"Error inserting activity {activity["id"]}: {insert_err}")
+                print(f"Error inserting activity {activity['id']}: {insert_err}") # CORRIGIDO AQUI
                 conn.rollback() # Desfaz a inserção da atividade atual em caso de erro
                 # Considerar logar o erro e continuar com a próxima atividade
 
@@ -454,5 +454,3 @@ if __name__ == "__main__":
         os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
-
-
