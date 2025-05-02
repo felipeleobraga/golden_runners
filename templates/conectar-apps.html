@@ -74,7 +74,7 @@
             <h2 class="text-xl font-semibold mb-4">Strava</h2>
             
             <!-- Adicionando debug para verificar o valor de strava_connected -->
-            <p>Debug: strava_connected = {{ strava_connected }}</p>
+            <!-- Debug removido -->
 
             {% if strava_connected %}
                 <p class="text-green-600 mb-4">Sua conta Strava está conectada!</p>
@@ -92,10 +92,9 @@
                 </form>
             {% else %}
                 <p class="text-gray-600 mb-4">Conecte sua conta Strava para importar suas atividades automaticamente.</p>
-                <a href="{{ url_for('strava_authorize') }}">
-                    Conectar com Strava (TESTE SEM ESTILO)
-                </a>
-            {% endif %}
+                <a href="{{ url_for(\'strava_authorize\') }}" class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Conectar com Strava
+                </a>           {% endif %}
 
             <hr class="my-6">
 
