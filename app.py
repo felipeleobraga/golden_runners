@@ -144,7 +144,7 @@ def strava_callback():
     if request.args.get("state") != session.pop("oauth_state", None):
         flash("Erro de validação de estado (CSRF?).", "error"); print("OAuth state mismatch!"); return redirect(url_for("dashboard"))
     if "error" in request.args:
-        flash(f"Erro na autorização Strava: {request.args.get("error")}.", "error"); print(f"Strava auth error: {request.args.get("error")}"); return redirect(url_for("dashboard"))
+        flash(f"Erro na autorização Strava: {request.args.get('error')}.", "error"); print(f"Strava auth error: {request.args.get('error')}"); return redirect(url_for("dashboard"))
     code = request.args.get("code")
     if not code: flash("Código Strava não recebido.", "error"); print("Strava code not received."); return redirect(url_for("dashboard"))
 
