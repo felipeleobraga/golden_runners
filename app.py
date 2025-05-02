@@ -132,7 +132,7 @@ def express_interest(item_id): pass
 def strava_authorize():
     if not STRAVA_CLIENT_ID or not STRAVA_CLIENT_SECRET:
         flash("Configuração do Strava incompleta.", "error"); return redirect(url_for("dashboard"))
-    strava = OAuth2Session(STRAVA_CLIENT_ID, redirect_uri=STRAVA_REDIRECT_URI, scope=STRAVA_SCOPES)
+    strava = OAuth2Session(STRAVA_CLIENT_ID, redirect_uri=STRAVA_REDIRECT_URI, scope=",".join(STRAVA_SCOPES))
     authorization_url, state = strava.authorization_url(STRAVA_AUTHORIZATION_URL, approval_prompt="force")
     session["oauth_state"] = state
     print(f"Redirecting to Strava: {authorization_url}")
