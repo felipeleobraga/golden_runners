@@ -178,7 +178,8 @@ def dashboard():
         try:
             conn = get_db_connection()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            print(f"DEBUG: Fetching activities for user_id: {g.user["id"]}")
+            # CORRIGIDO: Aspas simples dentro da f-string
+            print(f"DEBUG: Fetching activities for user_id: {g.user['id']}") 
             cur.execute("""
                 SELECT id, name, distance, moving_time, type, start_date
                 FROM strava_activities
@@ -357,7 +358,8 @@ def item_detail(item_id):
 def express_interest(item_id):
     print(f"DEBUG: Accessing express_interest route for item_id: {item_id}")
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
-    print(f"DEBUG: User {g.user["id"]} expressed interest in item {item_id}") 
+    # CORRIGIDO: Aspas simples dentro da f-string
+    print(f"DEBUG: User {g.user['id']} expressed interest in item {item_id}") 
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
 
@@ -537,7 +539,8 @@ def strava_fetch_activities():
         response = strava_session.get(activities_url, params=params)
         response.raise_for_status() 
         activities = response.json()
-        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user["id"]}") 
+        # CORRIGIDO: Aspas simples dentro da f-string
+        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user['id']}") 
 
         if not activities:
             print("INFO: No recent activities found on Strava API.")
@@ -605,7 +608,7 @@ def strava_fetch_activities():
         conn.commit()
 
         # --- CÁLCULO TOTAL DE PONTOS --- 
-        print(f"DEBUG: Recalculating total points for user {g.user["id"]}")
+        print(f"DEBUG: Recalculating total points for user {g.user['id']}")
         cur.execute("""
             SELECT SUM(distance) 
             FROM strava_activities 
@@ -618,7 +621,7 @@ def strava_fetch_activities():
         total_points = math.floor((total_distance_meters / 1000) * 10) if total_distance_meters else 0
         print(f"DEBUG: Calculated total points: {total_points}")
 
-        print(f"DEBUG: Updating user points in DB for user {g.user["id"]}")
+        print(f"DEBUG: Updating user points in DB for user {g.user['id']}")
         cur.execute("UPDATE users SET points = %s WHERE id = %s", (total_points, g.user["id"]))
         conn.commit()
         print(f"DEBUG: User points updated to {total_points}.")
