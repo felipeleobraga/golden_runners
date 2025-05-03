@@ -60,7 +60,7 @@ def get_db_connection():
 
 @app.before_request
 def load_logged_in_user():
-    """Carrega dados do usuário logado e token Strava (do DB) antes de cada request."""
+    """Carrega dados do usuário logado (incluindo created_at) e token Strava (do DB) antes de cada request."""
     print("DEBUG: Entering load_logged_in_user")
     user_id = session.get("user_id")
     g.user = None
@@ -76,13 +76,13 @@ def load_logged_in_user():
             conn = get_db_connection()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             
-            # Busca dados completos do usuário, incluindo pontos
-            print(f"DEBUG: Fetching user data for user_id: {user_id}")
-            cur.execute("SELECT id, username, points FROM users WHERE id = %s", (user_id,))
+            # Busca dados completos do usuário, incluindo pontos e created_at
+            print(f"DEBUG: Fetching user data (incl. points, created_at) for user_id: {user_id}")
+            cur.execute("SELECT id, username, points, created_at FROM users WHERE id = %s", (user_id,))
             user_data_from_db = cur.fetchone()
             print(f"DEBUG: User data from DB: {user_data_from_db}")
             if user_data_from_db:
-                g.user.update(user_data_from_db) # Atualiza g.user com dados do DB (incluindo pontos)
+                g.user.update(user_data_from_db) # Atualiza g.user com dados do DB
                 print(f"DEBUG: g.user updated: {g.user}")
             else:
                 print(f"WARN: No user data found in DB for user_id: {user_id}")
@@ -179,7 +179,7 @@ def dashboard():
             conn = get_db_connection()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             # CORRIGIDO: Aspas simples dentro da f-string
-            print(f"DEBUG: Fetching activities for user_id: {g.user['id']}") 
+            print(f"DEBUG: Fetching activities for user_id: {g.user["id"]}") 
             cur.execute("""
                 SELECT id, name, distance, moving_time, type, start_date
                 FROM strava_activities
@@ -359,7 +359,7 @@ def express_interest(item_id):
     print(f"DEBUG: Accessing express_interest route for item_id: {item_id}")
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
     # CORRIGIDO: Aspas simples dentro da f-string
-    print(f"DEBUG: User {g.user['id']} expressed interest in item {item_id}") 
+    print(f"DEBUG: User {g.user["id"]} expressed interest in item {item_id}") 
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
 
@@ -445,7 +445,7 @@ def strava_callback():
         print(f"DEBUG: Fetch token parameters (excluding secret): {fetch_params_log}")
         token = strava.fetch_token(STRAVA_TOKEN_URL, client_secret=STRAVA_CLIENT_SECRET, code=code, include_client_id=True)
         # Não logar o token completo em produção, apenas confirmação
-        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else 'None'}") 
+        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else "None"}") 
 
         if not token or "access_token" not in token:
              print("!!! ERROR: Access token missing in Strava response!")
@@ -524,111 +524,164 @@ def strava_fetch_activities():
         flash("Conecte sua conta Strava primeiro.", "warning")
         return redirect(url_for("conectar_page"))
 
+    # Busca a data de cadastro do usuário (já deve estar em g.user)
+    user_registration_date = g.user.get("created_at")
+    if not user_registration_date:
+        # Fallback: Se não encontrar a data (usuário antigo?), busca no DB
+        print(f"WARN: User created_at not found in g.user for user {g.user["id"]}. Fetching from DB.")
+        conn_temp = None
+        try:
+            conn_temp = get_db_connection()
+            cur_temp = conn_temp.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur_temp.execute("SELECT created_at FROM users WHERE id = %s", (g.user["id"],))
+            user_reg_data = cur_temp.fetchone()
+            cur_temp.close()
+            if user_reg_data and user_reg_data["created_at"]:
+                user_registration_date = user_reg_data["created_at"]
+                g.user["created_at"] = user_registration_date # Atualiza em g.user para futuras chamadas
+                print(f"DEBUG: Fetched user created_at from DB: {user_registration_date}")
+            else:
+                # Se ainda não encontrar, usa uma data muito antiga para incluir tudo (ou lança erro?)
+                print(f"!!! ERROR: Could not find registration date for user {g.user["id"]}. Points calculation might be incorrect.")
+                # Define uma data padrão antiga para não quebrar, mas loga o erro
+                user_registration_date = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+                flash("Erro ao encontrar data de cadastro. Cálculo de pontos pode incluir atividades antigas.", "error")
+        except Exception as e:
+            print(f"!!! DB ERROR fetching user created_at: {e}\n{traceback.format_exc()}")
+            flash("Erro ao buscar data de cadastro.", "error")
+            # Define uma data padrão antiga para não quebrar
+            user_registration_date = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+        finally:
+            if conn_temp:
+                conn_temp.close()
+
     access_token = g.strava_token_data["access_token"]
     strava_session = OAuth2Session(token={"access_token": access_token})
     conn = None
     imported_count = 0
     skipped_count = 0
-    total_points = g.user.get("points", 0) # Pega os pontos atuais como fallback
+    total_points = 0 # Reinicia para recalcular
 
     try:
         # Busca atividades da API do Strava
         activities_url = f"{STRAVA_API_BASE_URL}/athlete/activities"
-        params = {"per_page": 30} # Busca as últimas 30
+        # Adiciona filtro 'after' na API se possível (melhor performance)
+        # Convertendo user_registration_date para timestamp Unix
+        after_timestamp = int(user_registration_date.timestamp())
+        params = {"per_page": 50, "after": after_timestamp} # Busca 50 atividades APÓS o cadastro
         print(f"DEBUG: Fetching activities from Strava API: {activities_url} with params: {params}")
         response = strava_session.get(activities_url, params=params)
         response.raise_for_status() 
         activities = response.json()
         # CORRIGIDO: Aspas simples dentro da f-string
-        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user['id']}") 
+        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user["id"]}") 
 
         if not activities:
-            print("INFO: No recent activities found on Strava API.")
-            flash("Nenhuma atividade recente encontrada no Strava.", "info")
-            return redirect(url_for("dashboard"))
+            print("INFO: No recent activities found on Strava API since registration.")
+            # Mesmo sem novas atividades, recalcula os pontos com base no que já está no DB
+            # flash("Nenhuma atividade nova encontrada no Strava desde o cadastro.", "info")
+            # Não retorna aqui, continua para recalcular pontos
+        else:
+            conn = get_db_connection()
+            cur = conn.cursor()
 
-        conn = get_db_connection()
-        cur = conn.cursor()
+            # Insere ou atualiza atividades no banco
+            sql_upsert_activity = """INSERT INTO strava_activities 
+                     (id, user_id, strava_athlete_id, name, distance, moving_time, elapsed_time, type, start_date, timezone, start_latlng, end_latlng, map_summary_polyline)
+                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     ON CONFLICT (id) DO UPDATE SET
+                         name = EXCLUDED.name, distance = EXCLUDED.distance, moving_time = EXCLUDED.moving_time,
+                         elapsed_time = EXCLUDED.elapsed_time, type = EXCLUDED.type, start_date = EXCLUDED.start_date,
+                         timezone = EXCLUDED.timezone, start_latlng = EXCLUDED.start_latlng, end_latlng = EXCLUDED.end_latlng,
+                         map_summary_polyline = EXCLUDED.map_summary_polyline, imported_at = NOW();"""
+            
+            print(f"DEBUG: Starting upsert loop for {len(activities)} activities.")
+            for activity in activities:
+                try:
+                    activity_id = activity["id"]
+                    print(f"DEBUG: Processing activity {activity_id}")
+                    start_date_dt = datetime.datetime.fromisoformat(activity["start_date"].replace("Z", "+00:00"))
+                    
+                    # Pula atividades anteriores ao cadastro (redundante com filtro API, mas seguro)
+                    if start_date_dt < user_registration_date:
+                        print(f"DEBUG: Skipping activity {activity_id} (before registration date {user_registration_date})")
+                        skipped_count += 1
+                        continue
+                        
+                    start_latlng_str = str(activity.get("start_latlng")) if activity.get("start_latlng") else None
+                    end_latlng_str = str(activity.get("end_latlng")) if activity.get("end_latlng") else None
+                    map_polyline = activity.get("map", {}).get("summary_polyline")
+                    activity_type = activity.get("type", "Unknown")
+                    distance_meters = activity.get("distance", 0.0)
 
-        # Insere ou atualiza atividades no banco
-        sql_upsert_activity = """INSERT INTO strava_activities 
-                 (id, user_id, strava_athlete_id, name, distance, moving_time, elapsed_time, type, start_date, timezone, start_latlng, end_latlng, map_summary_polyline)
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                 ON CONFLICT (id) DO UPDATE SET
-                     name = EXCLUDED.name, distance = EXCLUDED.distance, moving_time = EXCLUDED.moving_time,
-                     elapsed_time = EXCLUDED.elapsed_time, type = EXCLUDED.type, start_date = EXCLUDED.start_date,
-                     timezone = EXCLUDED.timezone, start_latlng = EXCLUDED.start_latlng, end_latlng = EXCLUDED.end_latlng,
-                     map_summary_polyline = EXCLUDED.map_summary_polyline, imported_at = NOW();"""
+                    cur.execute(sql_upsert_activity, (
+                        activity_id,
+                        g.user["id"],
+                        activity["athlete"]["id"],
+                        activity["name"],
+                        distance_meters,
+                        activity.get("moving_time", 0),
+                        activity.get("elapsed_time", 0),
+                        activity_type,
+                        start_date_dt,
+                        activity.get("timezone"),
+                        start_latlng_str,
+                        end_latlng_str,
+                        map_polyline
+                    ))
+                    imported_count += 1
+                    print(f"DEBUG: Activity {activity_id} upserted.")
+
+                except psycopg2.IntegrityError as ie:
+                    conn.rollback() # Desfaz a transação atual para esta atividade
+                    print(f"WARN: Skipping activity {activity_id} due to DB integrity error: {ie}")
+                    skipped_count += 1
+                    # Inicia nova transação para a próxima atividade
+                    conn = get_db_connection(); cur = conn.cursor() 
+                except Exception as insert_error:
+                    conn.rollback()
+                    print(f"!!! ERROR inserting/updating activity {activity_id}: {insert_error}\n{traceback.format_exc()}")
+                    skipped_count += 1
+                    # Inicia nova transação para a próxima atividade
+                    conn = get_db_connection(); cur = conn.cursor() 
+            
+            # Commit final das atividades inseridas/atualizadas com sucesso
+            print(f"DEBUG: Committing {imported_count} successfully processed activities.")
+            conn.commit()
+            cur.close() # Fecha o cursor após o loop de inserção
+
+        # --- CÁLCULO TOTAL DE PONTOS (COM FILTROS) --- 
+        # Abre nova conexão/cursor se necessário (se não houve atividades novas)
+        if not conn or conn.closed:
+            conn = get_db_connection()
+        cur = conn.cursor() # Abre ou reabre o cursor
         
-        print(f"DEBUG: Starting upsert loop for {len(activities)} activities.")
-        for activity in activities:
-            try:
-                activity_id = activity["id"]
-                print(f"DEBUG: Processing activity {activity_id}")
-                start_date_dt = datetime.datetime.fromisoformat(activity["start_date"].replace("Z", "+00:00"))
-                start_latlng_str = str(activity.get("start_latlng")) if activity.get("start_latlng") else None
-                end_latlng_str = str(activity.get("end_latlng")) if activity.get("end_latlng") else None
-                map_polyline = activity.get("map", {}).get("summary_polyline")
-                activity_type = activity.get("type", "Unknown")
-                distance_meters = activity.get("distance", 0.0)
-
-                cur.execute(sql_upsert_activity, (
-                    activity_id,
-                    g.user["id"],
-                    activity["athlete"]["id"],
-                    activity["name"],
-                    distance_meters,
-                    activity.get("moving_time", 0),
-                    activity.get("elapsed_time", 0),
-                    activity_type,
-                    start_date_dt,
-                    activity.get("timezone"),
-                    start_latlng_str,
-                    end_latlng_str,
-                    map_polyline
-                ))
-                imported_count += 1
-                print(f"DEBUG: Activity {activity_id} upserted.")
-
-            except psycopg2.IntegrityError as ie:
-                conn.rollback() # Desfaz a transação atual para esta atividade
-                print(f"WARN: Skipping activity {activity_id} due to DB integrity error: {ie}")
-                skipped_count += 1
-                # Inicia nova transação para a próxima atividade
-                conn = get_db_connection(); cur = conn.cursor() 
-            except Exception as insert_error:
-                conn.rollback()
-                print(f"!!! ERROR inserting/updating activity {activity_id}: {insert_error}\n{traceback.format_exc()}")
-                skipped_count += 1
-                # Inicia nova transação para a próxima atividade
-                conn = get_db_connection(); cur = conn.cursor() 
-        
-        # Commit final das atividades inseridas/atualizadas com sucesso
-        print(f"DEBUG: Committing {imported_count} successfully processed activities.")
-        conn.commit()
-
-        # --- CÁLCULO TOTAL DE PONTOS --- 
-        print(f"DEBUG: Recalculating total points for user {g.user['id']}")
-        cur.execute("""
+        print(f"DEBUG: Recalculating total points for user {g.user["id"]} with filters (type=Run/Walk, after={user_registration_date})")
+        sql_calculate_points = """
             SELECT SUM(distance) 
             FROM strava_activities 
-            WHERE user_id = %s AND type = 'Run'
-        """, (g.user["id"],))
+            WHERE user_id = %s 
+              AND type IN ('Run', 'Walk') 
+              AND start_date >= %s
+        """
+        cur.execute(sql_calculate_points, (g.user["id"], user_registration_date))
         total_distance_result = cur.fetchone()
         total_distance_meters = total_distance_result[0] if total_distance_result and total_distance_result[0] else 0.0
-        print(f"DEBUG: Total run distance from DB: {total_distance_meters} meters.")
+        print(f"DEBUG: Total Run/Walk distance from DB since registration: {total_distance_meters} meters.")
         
         total_points = math.floor((total_distance_meters / 1000) * 10) if total_distance_meters else 0
         print(f"DEBUG: Calculated total points: {total_points}")
 
-        print(f"DEBUG: Updating user points in DB for user {g.user['id']}")
+        print(f"DEBUG: Updating user points in DB for user {g.user["id"]}")
         cur.execute("UPDATE users SET points = %s WHERE id = %s", (total_points, g.user["id"]))
         conn.commit()
-        print(f"DEBUG: User points updated to {total_points}.")
+        print(f"DEBUG: User points updated to {total_points} for user {g.user["id"]}.") 
         # -------------------------------------------------
 
         cur.close()
-        flash(f"{imported_count} atividades do Strava importadas/atualizadas. {skipped_count} ignoradas. Pontuação total atualizada para {total_points}.", "success")
+        flash_message = f"{imported_count} atividades novas importadas/atualizadas. {skipped_count} ignoradas. "
+        flash_message += f"Pontuação total (Corridas/Caminhadas desde cadastro) atualizada para {total_points}."
+        flash(flash_message, "success")
 
     except requests.exceptions.RequestException as api_error:
         print(f"!!! Strava API ERROR fetching activities: {api_error}")
