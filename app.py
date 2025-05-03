@@ -178,9 +178,8 @@ def dashboard():
         try:
             conn = get_db_connection()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            # --- CORREÇÃO: Adicionado filtro por tipo ("Run", "Walk") na query do dashboard --- 
-            # --- CORREÇÃO DE SINTAXE: Aspas duplas dentro da f-string trocadas por simples --- 
-            print(f"DEBUG: Fetching Run/Walk activities for user_id: {g.user['id']}") 
+            # --- CORREÇÃO DE SINTAXE: Uso de aspas simples em .get() dentro da f-string --- 
+            print(f"DEBUG: Fetching Run/Walk activities for user_id: {g.user.get('id')}") 
             # ----------------------------------------------------------------------------------
             cur.execute("""
                 SELECT id, name, distance, moving_time, type, start_date
@@ -398,7 +397,7 @@ def item_detail(item_id):
 def express_interest(item_id):
     print(f"DEBUG: Accessing express_interest route for item_id: {item_id}")
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
-    print(f"DEBUG: User {g.user['id']} expressed interest in item {item_id}") 
+    print(f"DEBUG: User {g.user.get('id')} expressed interest in item {item_id}") 
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
 
@@ -491,8 +490,9 @@ def strava_callback():
         }
         print(f"DEBUG: Fetch token parameters (excluding secret): {fetch_params_log}")
         token = strava.fetch_token(STRAVA_TOKEN_URL, client_secret=STRAVA_CLIENT_SECRET, code=code, include_client_id=True)
-        # Não logar o token completo em produção, apenas confirmação
-        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else "None"}") 
+        # --- CORREÇÃO DE SINTAXE: Aspas duplas dentro da f-string trocadas por simples --- 
+        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else 'None'}") 
+        # ----------------------------------------------------------------------------------
 
         if not token or "access_token" not in token:
              print("!!! ERROR: Access token missing in Strava response!")
@@ -573,14 +573,15 @@ def strava_fetch_activities():
 
     # Busca a data de cadastro do usuário (já deve estar em g.user)
     user_registration_date = g.user.get("created_at")
+    current_user_id = g.user.get('id') # Variável auxiliar para f-strings
     if not user_registration_date:
         # Fallback: Se não encontrar a data (usuário antigo?), busca no DB
-        print(f"WARN: User created_at not found in g.user for user {g.user['id']}. Fetching from DB.")
+        print(f"WARN: User created_at not found in g.user for user {current_user_id}. Fetching from DB.")
         conn_temp = None
         try:
             conn_temp = get_db_connection()
             cur_temp = conn_temp.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur_temp.execute("SELECT created_at FROM users WHERE id = %s", (g.user["id"],))
+            cur_temp.execute("SELECT created_at FROM users WHERE id = %s", (current_user_id,))
             user_reg_data = cur_temp.fetchone()
             cur_temp.close()
             if user_reg_data and user_reg_data["created_at"]:
@@ -589,7 +590,7 @@ def strava_fetch_activities():
                 print(f"DEBUG: Fetched user created_at from DB: {user_registration_date}")
             else:
                 # Se ainda não encontrar, usa uma data muito antiga para incluir tudo
-                print(f"!!! ERROR: Could not find registration date for user {g.user['id']}. Points calculation might be incorrect.")
+                print(f"!!! ERROR: Could not find registration date for user {current_user_id}. Points calculation might be incorrect.")
                 user_registration_date = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
                 flash("Erro ao encontrar data de cadastro. Cálculo de pontos pode incluir atividades antigas.", "error")
         except Exception as e:
@@ -627,7 +628,7 @@ def strava_fetch_activities():
         response = strava_session.get(activities_url, params=params)
         response.raise_for_status() 
         activities = response.json()
-        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user['id']}") 
+        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {current_user_id}") 
 
         if not activities:
             print("INFO: No recent activities found on Strava API since registration.")
@@ -669,7 +670,7 @@ def strava_fetch_activities():
 
                     cur.execute(sql_upsert_activity, (
                         activity_id,
-                        g.user["id"],
+                        current_user_id, # Usando variável auxiliar
                         activity["athlete"]["id"],
                         activity["name"],
                         distance_meters,
@@ -709,7 +710,7 @@ def strava_fetch_activities():
             conn = get_db_connection()
         cur = conn.cursor() # Abre ou reabre o cursor
         
-        print(f"DEBUG: Recalculating total points for user {g.user['id']} with filters (type=Run/Walk, after={user_registration_date})")
+        print(f"DEBUG: Recalculating total points for user {current_user_id} with filters (type=Run/Walk, after={user_registration_date})")
         # --- CORREÇÃO: Usar aspas simples para strings SQL --- 
         sql_calculate_points = """
             SELECT SUM(distance) 
@@ -719,7 +720,7 @@ def strava_fetch_activities():
               AND start_date >= %s
         """
         # ----------------------------------------------------
-        cur.execute(sql_calculate_points, (g.user["id"], user_registration_date))
+        cur.execute(sql_calculate_points, (current_user_id, user_registration_date))
         total_distance_result = cur.fetchone()
         total_distance_meters = total_distance_result[0] if total_distance_result and total_distance_result[0] else 0.0
         print(f"DEBUG: Total Run/Walk distance from DB since registration: {total_distance_meters} meters.")
@@ -727,10 +728,10 @@ def strava_fetch_activities():
         total_points = math.floor((total_distance_meters / 1000) * 10) if total_distance_meters else 0
         print(f"DEBUG: Calculated total points: {total_points}")
 
-        print(f"DEBUG: Updating user points in DB for user {g.user['id']}")
-        cur.execute("UPDATE users SET points = %s WHERE id = %s", (total_points, g.user["id"]))
+        print(f"DEBUG: Updating user points in DB for user {current_user_id}")
+        cur.execute("UPDATE users SET points = %s WHERE id = %s", (total_points, current_user_id))
         conn.commit()
-        print(f"DEBUG: User points updated to {total_points} for user {g.user['id']}.") 
+        print(f"DEBUG: User points updated to {total_points} for user {current_user_id}.") 
         # -------------------------------------------------
 
         cur.close()
