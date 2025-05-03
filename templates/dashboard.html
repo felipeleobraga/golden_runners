@@ -90,6 +90,8 @@
             <!-- Card Conectar Apps -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-2">Conectar Apps</h2>
+                <!-- DEBUG: Adicionado para verificar o valor passado para o template -->
+                <!-- DEBUG: strava_connected = {{ strava_connected }} -->
                 {% if strava_connected %}
                     <p class="text-green-600 mb-2">Conta Strava conectada!</p>
                     <!-- CORRIGIDO: url_for(\'conectar_page\') para url_for('conectar_page') -->
@@ -139,7 +141,7 @@
                             {% for activity in strava_activities %}
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ activity.name }}</td>
-                                <!-- CORRIGIDO: strftime(\\'%d/%m/%Y %H:%M\') para strftime('%d/%m/%Y %H:%M') -->
+                                <!-- CORRIGIDO: strftime(\'%d/%m/%Y %H:%M\') para strftime('%d/%m/%Y %H:%M') -->
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.start_date.strftime('%d/%m/%Y %H:%M') }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.type }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "%.2f km"|format(activity.distance / 1000) }}</td>

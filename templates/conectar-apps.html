@@ -24,24 +24,24 @@
     <nav class="bg-black text-white shadow-lg">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center">
-                <a href="{{ url_for('home') }}" class="flex items-center">
+                <a href="{{ url_for("home") }}" class="flex items-center">
                     <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAwMDAiLz48cGF0aCBkPSJNMTAgMTBIMjBWMjBIMTBWMTBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDEwSDQwVjIwSDMwVjEwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBkPSJNMTAgMzBIMjBWNDBIMTBWMzBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDMwSDQwVjQwSDMwVjMwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik01IDI1TDEwIDIwTDEwIDMwTDUgMjVaIiBmaWxsPSIjRkZEMzAwIi8+PC9zdmc+" alt="Logo" class="h-10 w-10">
                     <span class="ml-3 text-xl font-bold">Golden Runners</span>
                 </a>
             </div>
             <div class="hidden md:flex space-x-8">
-                <a href="{{ url_for('dashboard') }}" class="hover:text-yellow-400">Dashboard</a>
+                <a href="{{ url_for("dashboard") }}" class="hover:text-yellow-400">Dashboard</a>
                 <a href="#" class="hover:text-yellow-400">Atividades</a>
                 <a href="#" class="hover:text-yellow-400">Impacto</a>
-                <a href="{{ url_for('mural_page') }}" class="hover:text-yellow-400">Mural de Doações</a>
+                <a href="{{ url_for("mural_page") }}" class="hover:text-yellow-400">Mural de Doações</a>
             </div>
             <div class="flex items-center space-x-4">
                 {% if g.user %}
                     <span class="text-gray-300">Olá, {{ g.user.username }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="hover:text-yellow-400">Sair</a>
+                    <a href="{{ url_for("auth.logout") }}" class="hover:text-yellow-400">Sair</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="hover:text-yellow-400">Login</a>
-                    <a href="{{ url_for('auth.register') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
+                    <a href="{{ url_for("auth.login") }}" class="hover:text-yellow-400">Login</a>
+                    <a href="{{ url_for("auth.register") }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
                 {% endif %}
                 <div class="relative">
                     <img src="https://via.placeholder.com/40" alt="Profile" class="h-10 w-10 rounded-full border-2 border-yellow-500">
@@ -73,28 +73,29 @@
         <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
             <h2 class="text-xl font-semibold mb-4">Strava</h2>
             
-            <!-- Adicionando debug para verificar o valor de strava_connected -->
-            <!-- Debug removido -->
+            <!-- DEBUG: Adicionado para verificar o valor passado para o template -->
+            <!-- DEBUG: strava_connected = {{ strava_connected }} -->
 
             {% if strava_connected %}
-                <p class="text-green-600 mb-4">Sua conta Strava está conectada!</p>
+                <p class="text-green-600 mb-4">Sua conta Strava está conectada!{% if connection_date %} (Conectado em: {{ connection_date }}){% endif %}</p>
                 <!-- Botão para buscar atividades -->
-                <form method="POST" action="{{ url_for('strava_fetch_activities') }}" class="inline-block mr-2 mb-2">
+                <form method="POST" action="{{ url_for("strava_fetch_activities") }}" class="inline-block mr-2 mb-2">
                     <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Buscar Atividades Recentes
                     </button>
                 </form>
                 <!-- Botão para desconectar -->
-                <form method="POST" action="{{ url_for('strava_disconnect') }}" class="inline-block">
+                <form method="POST" action="{{ url_for("strava_disconnect") }}" class="inline-block">
                     <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Desconectar Strava
                     </button>
                 </form>
             {% else %}
                 <p class="text-gray-600 mb-4">Conecte sua conta Strava para importar suas atividades automaticamente.</p>
-                <a href="{{ url_for('strava_authorize') }}" class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                <a href="{{ url_for("strava_authorize") }}" class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                     Conectar com Strava
-                </a>           {% endif %}
+                </a>
+            {% endif %}
 
             <hr class="my-6">
 
