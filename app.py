@@ -445,7 +445,7 @@ def strava_callback():
         print(f"DEBUG: Fetch token parameters (excluding secret): {fetch_params_log}")
         token = strava.fetch_token(STRAVA_TOKEN_URL, client_secret=STRAVA_CLIENT_SECRET, code=code, include_client_id=True)
         # Não logar o token completo em produção, apenas confirmação
-        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else "None"}") 
+        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else 'None'}") 
 
         if not token or "access_token" not in token:
              print("!!! ERROR: Access token missing in Strava response!")
