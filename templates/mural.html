@@ -90,7 +90,7 @@
                 <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-full text-sm font-medium">Acessórios</button>
             </div>
             <!-- Botão Doar um Item ajustado para usar url_for -->
-            <a href="{{ url_for('add_item') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-full">Doar um Item</a>
+            <a href="{{ url_for('add_donation_item_page') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-full">Doar um Item</a>
         </div>
 
         <!-- Donation Items Grid -->
@@ -134,7 +134,7 @@
                                 <!-- Botão de Interesse/Status -->
                                 {% if item.status == 'available' %}
                                     <!-- Link para a página de detalhes onde o interesse pode ser expresso -->
-                                    <a href="{{ url_for('item_detail', item_id=item.id) }}" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Ver Detalhes / Interesse</a>
+                                    <a href="{{ url_for('item_detail', item_id=item.id) }}" class="bg-black hover:bg-gray-800 text-white text-sm font-bold py-2 px-4 rounded-full w-full block text-center">Me interessei</a>
                                 {% elif item.status == 'reserved' %}
                                     <button disabled class="bg-gray-300 text-gray-600 text-sm font-bold py-2 px-4 rounded-full w-full block text-center cursor-not-allowed">Reservado</button>
                                 {% elif item.status == 'donated' %}
