@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipes - Golden Runners</title>
+    <!-- Incluir CSS comum ou específico -->
+    <link rel="stylesheet" href="{{ url_for("static", filename="style.css") }}">
+</head>
+<body>
+    {% include "nav.html" %} {# Assume que a navegação está em um arquivo separado #}
+
+    <div class="container">
+        <h1>Equipes Golden Runners</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flashes">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="actions mb-3">
+            <a href="{{ url_for("create_team_page") }}" class="btn btn-primary">Criar Nova Equipe</a>
+        </div>
+
+        <h2>Equipes Existentes</h2>
+        {% if teams %}
+            <ul class="list-group">
+                {% for team in teams %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5>{{ team.name }}</h5>
+                            <p>{{ team.description or "Sem descrição" }}</p>
+                            <small>Criada em: {{ team.created_at.strftime("%d/%m/%Y") if team.created_at else "N/A" }}</small>
+                        </div>
+                        {# Lógica para mostrar botão de entrar/sair ou indicar que já pertence #}
+                        {% if g.user and g.user.team_id == team.id %}
+                            <span class="badge bg-success">Você pertence a esta equipe</span>
+                            {# Adicionar botão de sair se necessário #}
+                            {# <form action="{{ url_for("leave_team", team_id=team.id) }}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-warning">Sair da Equipe</button>
+                            </form> #}
+                        {% elif g.user and not g.user.team_id %}
+                            <form action="{{ url_for("join_team", team_id=team.id) }}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-info">Entrar na Equipe</button>
+                            </form>
+                        {% elif g.user and g.user.team_id != team.id %}
+                             <span class="badge bg-secondary">Você já pertence a outra equipe</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Nenhuma equipe criada ainda. Seja o primeiro!</p>
+        {% endif %}
+    </div>
+
+    {% include "footer.html" %} {# Assume que o rodapé está em um arquivo separado #}
+</body>
+</html>
+

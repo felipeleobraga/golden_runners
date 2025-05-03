@@ -32,7 +32,8 @@
             </div>
             <div class="hidden md:flex space-x-8">
                 <a href="{{ url_for("dashboard") }}" class="hover:text-yellow-400">Dashboard</a>
-                <a href="{{ url_for("ranking_page") }}" class="hover:text-yellow-400">Ranking</a> <!-- Link Adicionado -->
+                <a href="{{ url_for("ranking_page") }}" class="hover:text-yellow-400">Ranking</a>
+                <a href="{{ url_for("list_teams_page") }}" class="hover:text-yellow-400">Equipes</a> <!-- Link Adicionado -->
                 <a href="#" class="hover:text-yellow-400">Atividades</a>
                 <a href="#" class="hover:text-yellow-400">Impacto</a>
                 <a href="{{ url_for("mural_page") }}" class="hover:text-yellow-400">Mural de Doações</a>
@@ -76,7 +77,7 @@
             <!-- Card Resumo -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-2">Resumo</h2>
-                <p class="text-lg font-bold text-yellow-600 mb-2">Pontos: {{ user.points }}</p> <!-- PONTOS ADICIONADOS AQUI -->
+                <p class="text-lg font-bold text-yellow-600 mb-2">Pontos: {{ user.points }}</p>
                 <p><strong>Total KM Percorridos:</strong> {{ user.total_km }} km</p>
                 <p><strong>Total Doado:</strong> R$ {{ "%.2f"|format(user.total_donated) }}</p>
                 <p><strong>Última Atividade:</strong> {{ user.last_activity }}</p>
@@ -85,7 +86,6 @@
             <!-- Card Conectar Apps -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-2">Conectar Apps</h2>
-                <!-- DEBUG: Adicionado para verificar o valor passado para o template -->
                 <!-- DEBUG: strava_connected = {{ strava_connected }} -->
                 {% if strava_connected %}
                     <p class="text-green-600 mb-2">Conta Strava conectada!</p>

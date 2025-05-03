@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Nova Equipe - Golden Runners</title>
+    <!-- Incluir CSS comum ou específico -->
+    <link rel="stylesheet" href="{{ url_for("static", filename="style.css") }}">
+</head>
+<body>
+    {% include "nav.html" %} {# Assume que a navegação está em um arquivo separado #}
+
+    <div class="container">
+        <h1>Criar Nova Equipe</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flashes">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="post">
+            <div class="mb-3">
+                <label for="name" class="form-label">Nome da Equipe</label>
+                <input type="text" class="form-control" id="name" name="name" required value="{{ form_data.get("name", "") }}">
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Descrição (Opcional)</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ form_data.get("description", "") }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Criar Equipe</button>
+            <a href="{{ url_for("list_teams_page") }}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+
+    {% include "footer.html" %} {# Assume que o rodapé está em um arquivo separado #}
+</body>
+</html>
+
