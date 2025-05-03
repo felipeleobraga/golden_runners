@@ -143,7 +143,8 @@ def dashboard():
             """, (g.user["id"],))
             strava_activities = cur.fetchall()
             cur.close()
-            print(f"Fetched {len(strava_activities)} activities for user {g.user['id']} for dashboard")
+            # CORRIGIDO: Aspas simples dentro da f-string
+            print(f"Fetched {len(strava_activities)} activities for user {g.user['id']} for dashboard") 
         except (Exception, psycopg2.DatabaseError) as db_error:
             error_details = traceback.format_exc()
             print(f"!!! DB ERROR fetching Strava activities for dashboard: {db_error}\n{error_details}")
@@ -288,7 +289,8 @@ def item_detail(item_id):
 def express_interest(item_id):
     """Registra o interesse de um usuário em um item (placeholder)."""
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
-    print(f"User {g.user["id"]} expressed interest in item {item_id}")
+    # CORRIGIDO: Aspas simples dentro da f-string
+    print(f"User {g.user['id']} expressed interest in item {item_id}") 
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
 
@@ -336,7 +338,7 @@ def strava_callback():
     if request.args.get("state") != session.pop("oauth_state", None):
         flash("Erro de validação de estado (CSRF?).", "error"); print("OAuth state mismatch!"); return redirect(url_for("dashboard"))
     if "error" in request.args:
-        flash(f"Erro na autorização Strava: {request.args.get("error")}.", "error"); print(f"Strava auth error: {request.args.get("error")}"); return redirect(url_for("dashboard"))
+        flash(f"Erro na autorização Strava: {request.args.get('error')}.", "error"); print(f"Strava auth error: {request.args.get('error')}"); return redirect(url_for("dashboard"))
     code = request.args.get("code")
     if not code: flash("Código Strava não recebido.", "error"); print("Strava code not received."); return redirect(url_for("dashboard"))
 
@@ -428,7 +430,8 @@ def strava_fetch_activities():
         response = strava_session.get(activities_url, params=params)
         response.raise_for_status() # Lança erro para respostas != 2xx
         activities = response.json()
-        print(f"Fetched {len(activities)} activities from Strava API for user {g.user["id"]}")
+        # CORRIGIDO: Aspas simples dentro da f-string
+        print(f"Fetched {len(activities)} activities from Strava API for user {g.user['id']}") 
 
         if not activities:
             flash("Nenhuma atividade recente encontrada no Strava.", "info")
@@ -479,11 +482,11 @@ def strava_fetch_activities():
 
             except psycopg2.IntegrityError as ie:
                 conn.rollback() 
-                print(f"Skipping activity {activity["id"]} due to DB integrity error: {ie}")
+                print(f"Skipping activity {activity['id']} due to DB integrity error: {ie}")
                 skipped_count += 1
             except Exception as insert_error:
                 conn.rollback()
-                print(f"!!! ERROR inserting/updating activity {activity["id"]}: {insert_error}")
+                print(f"!!! ERROR inserting/updating activity {activity['id']}: {insert_error}")
                 skipped_count += 1
         
         # Commit das atividades inseridas/atualizadas
@@ -502,12 +505,12 @@ def strava_fetch_activities():
         
         # Calcula os pontos (10 pontos por KM completo)
         total_points = math.floor((total_distance_meters / 1000) * 10) if total_distance_meters else 0
-        print(f"Calculated total points for user {g.user["id"]}: {total_points} based on {total_distance_meters} meters.")
+        print(f"Calculated total points for user {g.user['id']}: {total_points} based on {total_distance_meters} meters.")
 
         # Atualiza a pontuação total do usuário na tabela users
         cur.execute("UPDATE users SET points = %s WHERE id = %s", (total_points, g.user["id"]))
         conn.commit()
-        print(f"Updated user {g.user["id"]} points to {total_points}.")
+        print(f"Updated user {g.user['id']} points to {total_points}.")
         # -------------------------------------------------
 
         cur.close()
