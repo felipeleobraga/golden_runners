@@ -7,6 +7,7 @@ import traceback # Importado para log detalhado de erros
 import requests # Adicionado para fazer requisições HTTP
 import json # Adicionado para lidar com JSON
 import datetime # Adicionado para lidar com timestamps
+import math # Adicionado para arredondamento de pontos
 from urllib.parse import urlparse, urlencode # urlencode adicionado
 from flask import Flask, render_template, session, g, flash, redirect, url_for, request
 from dotenv import load_dotenv
@@ -63,31 +64,36 @@ def load_logged_in_user():
     g.strava_token_data = None # Renomeado para clareza
 
     if user_id is not None:
+        # Carrega dados básicos do usuário da sessão
         g.user = {"id": user_id, "username": session.get("username")}
         conn = None
         try:
             conn = get_db_connection()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            # Busca dados completos do usuário, incluindo pontos
+            cur.execute("SELECT id, username, points FROM users WHERE id = %s", (user_id,))
+            user_data_from_db = cur.fetchone()
+            if user_data_from_db:
+                g.user.update(user_data_from_db) # Atualiza g.user com dados do DB (incluindo pontos)
+            
+            # Busca token do Strava
             cur.execute("SELECT *, created_at, updated_at FROM strava_tokens WHERE user_id = %s", (user_id,))
             token_data = cur.fetchone()
             cur.close()
             
             if token_data:
-                # TODO: Implementar refresh token se expirado
                 # Verifica se o token expirou (considerando um buffer de 60s)
-                # A comparação agora deve funcionar pois expires_at é TIMESTAMPTZ
                 if token_data["expires_at"] > datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=60):
                     g.strava_token_data = token_data
                     print(f"Strava token loaded from DB for user {user_id}")
                 else:
                     print(f"Strava token for user {user_id} expired. Needs refresh.")
-                    # flash("Sua conexão com o Strava expirou. Por favor, conecte novamente.", "warning")
-                    # Aqui poderíamos tentar o refresh token ou deletar o token expirado
-                    # Por enquanto, apenas não carregamos em g.strava_token_data
+                    # TODO: Implementar refresh token
                     
         except Exception as db_error: # Catching broader Exception
             error_details = traceback.format_exc()
-            print(f"!!! DETAILED DB ERROR loading Strava token: {db_error}\n{error_details}")
+            print(f"!!! DETAILED DB ERROR loading user/Strava token: {db_error}\n{error_details}")
         finally:
             if conn:
                 conn.close()
@@ -111,7 +117,14 @@ def home():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    user_data = {"username": g.user["username"], "total_km": 0, "total_donated": 0, "last_activity": "N/A"}
+    # g.user já contém os pontos carregados pelo before_request
+    user_data = {
+        "username": g.user["username"],
+        "points": g.user.get("points", 0), # Pega os pontos de g.user
+        "total_km": 0, # Placeholder, pode ser calculado depois
+        "total_donated": 0, # Placeholder
+        "last_activity": "N/A" # Placeholder
+    }
     strava_connected = bool(g.strava_token_data)
     strava_activities = []
     conn = None
@@ -130,7 +143,7 @@ def dashboard():
             """, (g.user["id"],))
             strava_activities = cur.fetchall()
             cur.close()
-            print(f"Fetched {len(strava_activities)} activities for user {g.user['id']}")
+            print(f"Fetched {len(strava_activities)} activities for user {g.user["id"]} for dashboard")
         except (Exception, psycopg2.DatabaseError) as db_error:
             error_details = traceback.format_exc()
             print(f"!!! DB ERROR fetching Strava activities for dashboard: {db_error}\n{error_details}")
@@ -275,13 +288,12 @@ def item_detail(item_id):
 def express_interest(item_id):
     """Registra o interesse de um usuário em um item (placeholder)."""
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
-    print(f"User {g.user['id']} expressed interest in item {item_id}")
+    print(f"User {g.user["id"]} expressed interest in item {item_id}")
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
 
 # --- Rotas de Conexão Strava --- 
 
-# NOVA ROTA ADICIONADA
 @app.route("/conectar")
 @login_required
 def conectar_page():
@@ -324,15 +336,14 @@ def strava_callback():
     if request.args.get("state") != session.pop("oauth_state", None):
         flash("Erro de validação de estado (CSRF?).", "error"); print("OAuth state mismatch!"); return redirect(url_for("dashboard"))
     if "error" in request.args:
-        flash(f"Erro na autorização Strava: {request.args.get('error')}.", "error"); print(f"Strava auth error: {request.args.get('error')}"); return redirect(url_for("dashboard"))
+        flash(f"Erro na autorização Strava: {request.args.get("error")}.", "error"); print(f"Strava auth error: {request.args.get("error")}"); return redirect(url_for("dashboard"))
     code = request.args.get("code")
     if not code: flash("Código Strava não recebido.", "error"); print("Strava code not received."); return redirect(url_for("dashboard"))
 
     conn = None
     try:
         strava = OAuth2Session(STRAVA_CLIENT_ID, redirect_uri=STRAVA_REDIRECT_URI)
-        print(f"Attempting to fetch token from {STRAVA_TOKEN_URL} with code: {code}") # Log Adicional
-        # Log dos parâmetros que serão enviados (exceto o secret)
+        print(f"Attempting to fetch token from {STRAVA_TOKEN_URL} with code: {code}")
         fetch_params = {
             "client_id": STRAVA_CLIENT_ID,
             "code": code,
@@ -340,13 +351,9 @@ def strava_callback():
             "redirect_uri": STRAVA_REDIRECT_URI
         }
         print(f"Fetch token parameters (excluding secret): {fetch_params}")
-        
-        # Tenta buscar o token
         token = strava.fetch_token(STRAVA_TOKEN_URL, client_secret=STRAVA_CLIENT_SECRET, code=code, include_client_id=True)
-        
-        print(f"Received token response: {token}") # Log Adicional
+        print(f"Received token response: {token}")
 
-        # Verifica se o token foi recebido corretamente
         if not token or "access_token" not in token:
              print("!!! Access token missing in Strava response!")
              flash("Erro ao obter token de acesso do Strava. Resposta inesperada.", "error")
@@ -373,10 +380,9 @@ def strava_callback():
     except Exception as e:
         error_details = traceback.format_exc(); print(f"!!! ERROR fetching/saving Strava token: {e}\n{error_details}")
         flash("Erro ao conectar com Strava.", "error")
-        if conn: conn.rollback() # Rollback em caso de erro no DB
+        if conn: conn.rollback()
     finally: 
         if conn: conn.close()
-    # Redireciona para a página de conexão após o callback
     return redirect(url_for("conectar_page")) 
 
 @app.route("/strava/disconnect", methods=["POST"])
@@ -388,8 +394,8 @@ def strava_disconnect():
         user_id = g.user["id"]
         conn = get_db_connection(); cur = conn.cursor()
         cur.execute("DELETE FROM strava_tokens WHERE user_id = %s", (user_id,))
-        # Também deletar atividades associadas?
-        # cur.execute("DELETE FROM strava_activities WHERE user_id = %s", (user_id,))
+        # Resetar pontos ao desconectar? Ou manter?
+        # cur.execute("UPDATE users SET points = 0 WHERE id = %s", (user_id,))
         conn.commit(); cur.close()
         print(f"Strava token deleted from DB for user {user_id}")
         flash("Conta Strava desconectada.", "success")
@@ -413,6 +419,7 @@ def strava_fetch_activities():
     conn = None
     imported_count = 0
     skipped_count = 0
+    new_points_earned = 0 # Variável para acumular pontos da busca atual
 
     try:
         # Busca atividades da API do Strava (ex: últimas 30)
@@ -421,7 +428,7 @@ def strava_fetch_activities():
         response = strava_session.get(activities_url, params=params)
         response.raise_for_status() # Lança erro para respostas != 2xx
         activities = response.json()
-        print(f"Fetched {len(activities)} activities from Strava API for user {g.user['id']}")
+        print(f"Fetched {len(activities)} activities from Strava API for user {g.user["id"]}")
 
         if not activities:
             flash("Nenhuma atividade recente encontrada no Strava.", "info")
@@ -431,7 +438,7 @@ def strava_fetch_activities():
         cur = conn.cursor()
 
         # Insere ou atualiza atividades no banco
-        sql = """INSERT INTO strava_activities 
+        sql_upsert_activity = """INSERT INTO strava_activities 
                  (id, user_id, strava_athlete_id, name, distance, moving_time, elapsed_time, type, start_date, timezone, start_latlng, end_latlng, map_summary_polyline)
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                  ON CONFLICT (id) DO UPDATE SET
@@ -444,21 +451,21 @@ def strava_fetch_activities():
             try:
                 # Converte start_date para datetime object com timezone
                 start_date_dt = datetime.datetime.fromisoformat(activity["start_date"].replace("Z", "+00:00"))
-                
-                # Converte latlng para string (ou pode usar tipo point se o DB suportar)
                 start_latlng_str = str(activity.get("start_latlng")) if activity.get("start_latlng") else None
                 end_latlng_str = str(activity.get("end_latlng")) if activity.get("end_latlng") else None
                 map_polyline = activity.get("map", {}).get("summary_polyline")
+                activity_type = activity.get("type", "Unknown")
+                distance_meters = activity.get("distance", 0.0)
 
-                cur.execute(sql, (
+                cur.execute(sql_upsert_activity, (
                     activity["id"],
                     g.user["id"],
                     activity["athlete"]["id"],
                     activity["name"],
-                    activity.get("distance", 0.0),
+                    distance_meters,
                     activity.get("moving_time", 0),
                     activity.get("elapsed_time", 0),
-                    activity.get("type", "Unknown"),
+                    activity_type,
                     start_date_dt,
                     activity.get("timezone"),
                     start_latlng_str,
@@ -466,28 +473,53 @@ def strava_fetch_activities():
                     map_polyline
                 ))
                 imported_count += 1
+                
+                # --- LÓGICA DE PONTOS REMOVIDA DAQUI --- 
+                # Não calculamos pontos por atividade individualmente para evitar duplicação
+
             except psycopg2.IntegrityError as ie:
-                # Pode acontecer se houver conflito não tratado pelo ON CONFLICT (raro)
-                conn.rollback() # Desfaz a transação atual para continuar com as próximas
-                print(f"Skipping activity {activity['id']} due to DB integrity error: {ie}")
+                conn.rollback() 
+                print(f"Skipping activity {activity["id"]} due to DB integrity error: {ie}")
                 skipped_count += 1
             except Exception as insert_error:
                 conn.rollback()
-                print(f"!!! ERROR inserting/updating activity {activity['id']}: {insert_error}")
+                print(f"!!! ERROR inserting/updating activity {activity["id"]}: {insert_error}")
                 skipped_count += 1
-                # Considerar parar ou continuar dependendo da gravidade
-
+        
+        # Commit das atividades inseridas/atualizadas
         conn.commit()
+        print(f"Committed {imported_count} activities.")
+
+        # --- NOVA LÓGICA DE CÁLCULO TOTAL DE PONTOS --- 
+        # Calcula o total de pontos baseado em TODAS as corridas do usuário no DB
+        cur.execute("""
+            SELECT SUM(distance) 
+            FROM strava_activities 
+            WHERE user_id = %s AND type = 'Run'
+        """, (g.user["id"],))
+        total_distance_result = cur.fetchone()
+        total_distance_meters = total_distance_result[0] if total_distance_result and total_distance_result[0] else 0.0
+        
+        # Calcula os pontos (10 pontos por KM completo)
+        total_points = math.floor((total_distance_meters / 1000) * 10) if total_distance_meters else 0
+        print(f"Calculated total points for user {g.user["id"]}: {total_points} based on {total_distance_meters} meters.")
+
+        # Atualiza a pontuação total do usuário na tabela users
+        cur.execute("UPDATE users SET points = %s WHERE id = %s", (total_points, g.user["id"]))
+        conn.commit()
+        print(f"Updated user {g.user["id"]} points to {total_points}.")
+        # -------------------------------------------------
+
         cur.close()
-        flash(f"{imported_count} atividades do Strava importadas/atualizadas. {skipped_count} ignoradas.", "success")
+        flash(f"{imported_count} atividades do Strava importadas/atualizadas. {skipped_count} ignoradas. Pontuação total atualizada para {total_points}.", "success")
 
     except requests.exceptions.RequestException as api_error:
         print(f"!!! Strava API ERROR fetching activities: {api_error}")
         flash("Erro ao buscar atividades da API do Strava.", "error")
     except (Exception, psycopg2.DatabaseError) as db_error:
         error_details = traceback.format_exc()
-        print(f"!!! DB ERROR saving Strava activities: {db_error}\n{error_details}")
-        flash("Erro ao salvar atividades do Strava no banco de dados.", "error")
+        print(f"!!! DB ERROR processing Strava activities/points: {db_error}\n{error_details}")
+        flash("Erro ao processar atividades/pontos do Strava.", "error")
         if conn: conn.rollback()
     finally:
         if conn:
