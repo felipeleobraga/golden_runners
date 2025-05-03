@@ -25,24 +25,24 @@
     <nav class="bg-black text-white shadow-lg">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center">
-                <a href="{{ url_for('home') }}" class="flex items-center">
+                <a href="{{ url_for(\'home\') }}" class="flex items-center">
                     <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAwMDAiLz48cGF0aCBkPSJNMTAgMTBIMjBWMjBIMTBWMTBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDEwSDQwVjIwSDMwVjEwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBkPSJNMTAgMzBIMjBWNDBIMTBWMzBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDMwSDQwVjQwSDMwVjMwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik01IDI1TDEwIDIwTDEwIDMwTDUgMjVaIiBmaWxsPSIjRkZEMzAwIi8+PC9zdmc+" alt="Logo" class="h-10 w-10">
                     <span class="ml-3 text-xl font-bold">Golden Runners</span>
                 </a>
             </div>
             <div class="hidden md:flex space-x-8">
-                <a href="{{ url_for('dashboard') }}" class="hover:text-yellow-400">Dashboard</a>
+                <a href="{{ url_for(\'dashboard\') }}" class="hover:text-yellow-400">Dashboard</a>
                 <a href="#" class="hover:text-yellow-400">Atividades</a>
                 <a href="#" class="hover:text-yellow-400">Impacto</a>
-                <a href="{{ url_for('mural_page') }}" class="hover:text-yellow-400">Mural de Doações</a>
+                <a href="{{ url_for(\'mural_page\') }}" class="hover:text-yellow-400">Mural de Doações</a>
             </div>
             <div class="flex items-center space-x-4">
                 {% if g.user %}
                     <span class="text-gray-300">Olá, {{ g.user.username }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="hover:text-yellow-400">Sair</a>
+                    <a href="{{ url_for(\'auth.logout\') }}" class="hover:text-yellow-400">Sair</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="hover:text-yellow-400">Login</a>
-                    <a href="{{ url_for('auth.register') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
+                    <a href="{{ url_for(\'auth.login\') }}" class="hover:text-yellow-400">Login</a>
+                    <a href="{{ url_for(\'auth.register\') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
                 {% endif %}
                 <div class="relative">
                     <img src="https://via.placeholder.com/40" alt="Profile" class="h-10 w-10 rounded-full border-2 border-yellow-500">
@@ -75,6 +75,7 @@
             <!-- Card Resumo -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-2">Resumo</h2>
+                <p class="text-lg font-bold text-yellow-600 mb-2">Pontos: {{ user.points }}</p> <!-- PONTOS ADICIONADOS AQUI -->
                 <p><strong>Total KM Percorridos:</strong> {{ user.total_km }} km</p>
                 <p><strong>Total Doado:</strong> R$ {{ "%.2f"|format(user.total_donated) }}</p>
                 <p><strong>Última Atividade:</strong> {{ user.last_activity }}</p>
@@ -85,10 +86,10 @@
                 <h2 class="text-xl font-semibold mb-2">Conectar Apps</h2>
                 {% if strava_connected %}
                     <p class="text-green-600 mb-2">Conta Strava conectada!</p>
-                    <a href="{{ url_for('conectar_page') }}" class="text-blue-500 hover:underline">Gerenciar conexão</a>
+                    <a href="{{ url_for(\'conectar_page\') }}" class="text-blue-500 hover:underline">Gerenciar conexão</a>
                 {% else %}
                     <p class="mb-4">Sincronize suas atividades automaticamente.</p>
-                    <a href="{{ url_for('conectar_page') }}" 
+                    <a href="{{ url_for(\'conectar_page\') }}" 
                        class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Conectar Strava
                     </a>
@@ -99,7 +100,7 @@
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-2">Mural de Doações</h2>
                 <p class="mb-4">Doe ou encontre itens.</p>
-                <a href="{{ url_for('mural_page') }}" 
+                <a href="{{ url_for(\'mural_page\') }}" 
                    class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                     Ver Mural
                 </a>
@@ -129,7 +130,7 @@
                             {% for activity in strava_activities %}
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ activity.name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.start_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.start_date.strftime(\'%d/%m/%Y %H:%M\') }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.type }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "%.2f km"|format(activity.distance / 1000) }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -144,7 +145,7 @@
                     </table>
                 </div>
             {% else %}
-                <p class="text-gray-500">Nenhuma atividade recente encontrada. Clique em "Buscar Atividades Recentes" na <a href="{{ url_for('conectar_page') }}" class="text-blue-500 hover:underline">página de conexão</a>.</p>
+                <p class="text-gray-500">Nenhuma atividade recente encontrada. Clique em "Buscar Atividades Recentes" na <a href="{{ url_for(\'conectar_page\') }}" class="text-blue-500 hover:underline">página de conexão</a>.</p>
             {% endif %}
         </div>
         {% endif %}
