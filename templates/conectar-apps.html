@@ -20,7 +20,7 @@
     </style>
 </head>
 <body class="bg-gray-100 font-sans flex flex-col min-h-screen">
-    <!-- Navbar (copiada do mural.html para consistência) -->
+    <!-- Navbar (Consistente com outros templates) -->
     <nav class="bg-black text-white shadow-lg">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center">
@@ -31,6 +31,7 @@
             </div>
             <div class="hidden md:flex space-x-8">
                 <a href="{{ url_for("dashboard") }}" class="hover:text-yellow-400">Dashboard</a>
+                <a href="{{ url_for("ranking_page") }}" class="hover:text-yellow-400">Ranking</a> <!-- Link Adicionado -->
                 <a href="#" class="hover:text-yellow-400">Atividades</a>
                 <a href="#" class="hover:text-yellow-400">Impacto</a>
                 <a href="{{ url_for("mural_page") }}" class="hover:text-yellow-400">Mural de Doações</a>
@@ -106,7 +107,7 @@
         </div>
     </main>
 
-    <!-- Footer (copiado do mural.html para consistência) -->
+    <!-- Footer (Consistente com outros templates) -->
     <footer class="bg-gray-900 text-white py-6 mt-auto">
         <div class="container mx-auto px-4 text-center">
             <p>&copy; 2025 Golden Runners. Todos os direitos reservados.</p>
