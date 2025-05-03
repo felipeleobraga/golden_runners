@@ -4,62 +4,161 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipes - Golden Runners</title>
-    <!-- Incluir CSS comum ou específico -->
-    <link rel="stylesheet" href="{{ url_for("static", filename="style.css") }}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Estilos consistentes com o restante da aplicação */
+        body { background-color: #f7fafc; /* bg-gray-100 */ }
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 600; /* font-semibold */
+        }
+        .flash-success { background-color: #c6f6d5; color: #2f855a; border: 1px solid #9ae6b4; } /* bg-green-100, text-green-800, border-green-300 */
+        .flash-error { background-color: #fed7d7; color: #c53030; border: 1px solid #feb2b2; } /* bg-red-100, text-red-800, border-red-300 */
+        .flash-warning { background-color: #feebc8; color: #975a16; border: 1px solid #fbd38d; } /* bg-yellow-100, text-yellow-800, border-yellow-300 */
+        .flash-info { background-color: #bee3f8; color: #2b6cb0; border: 1px solid #90cdf4; } /* bg-blue-100, text-blue-800, border-blue-300 */
+        .btn-primary {
+            background-color: #facc15; /* bg-yellow-500 */
+            color: #1f2937; /* text-gray-800 */
+            font-weight: 700; /* font-bold */
+            padding: 0.5rem 1rem; /* py-2 px-4 */
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover { background-color: #eab308; /* bg-yellow-600 */ }
+        .btn-secondary {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+            font-weight: 600; /* font-semibold */
+            padding: 0.25rem 0.75rem; /* py-1 px-3 */
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.2s;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .btn-secondary:hover { background-color: #2563eb; /* bg-blue-600 */ }
+        .btn-danger {
+            background-color: #ef4444; /* bg-red-500 */
+            color: white;
+            font-weight: 600; /* font-semibold */
+            padding: 0.25rem 0.75rem; /* py-1 px-3 */
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.2s;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .btn-danger:hover { background-color: #dc2626; /* bg-red-600 */ }
+        .card {
+            background-color: white;
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            overflow: hidden;
+        }
+    </style>
 </head>
-<body>
-    {% include "nav.html" %} {# Assume que a navegação está em um arquivo separado #}
+<body class="bg-gray-100 font-sans flex flex-col min-h-screen">
 
-    <div class="container">
-        <h1>Equipes Golden Runners</h1>
+    <!-- Navbar (Mantida consistente) -->
+    <nav class="bg-black text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="{{ url_for("home") }}" class="flex items-center">
+                    <!-- Substituir por logo real se disponível -->
+                    <svg class="h-10 w-10 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                    <span class="ml-3 text-xl font-bold">Golden Runners</span>
+                </a>
+            </div>
+            <div class="hidden md:flex space-x-6">
+                <a href="{{ url_for("dashboard") }}" class="hover:text-yellow-400">Dashboard</a>
+                <a href="{{ url_for("ranking_page") }}" class="hover:text-yellow-400">Ranking</a>
+                <a href="{{ url_for("list_teams_page") }}" class="hover:text-yellow-400 font-semibold text-yellow-400">Equipes</a> <!-- Destaque na página atual -->
+                <a href="#" class="hover:text-yellow-400">Atividades</a>
+                <a href="#" class="hover:text-yellow-400">Impacto</a>
+                <a href="{{ url_for("mural_page") }}" class="hover:text-yellow-400">Mural</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                {% if g.user %}
+                    <span class="text-gray-300">Olá, {{ g.user.username }}</span>
+                    <a href="{{ url_for("auth.logout") }}" class="hover:text-yellow-400 text-sm">Sair</a>
+                {% else %}
+                    <a href="{{ url_for("auth.login") }}" class="hover:text-yellow-400">Login</a>
+                    <a href="{{ url_for("auth.register") }}" class="bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
+                {% endif %}
+                <!-- Placeholder para foto de perfil -->
+                <div class="relative">
+                     <span class="inline-block h-10 w-10 rounded-full overflow-hidden bg-gray-700 border-2 border-yellow-500 flex items-center justify-center">
+                        <span class="text-xl font-medium text-white">{{ g.user.username[0].upper() if g.user else '?' }}</span>
+                    </span>
+                </div>
+                <button class="md:hidden focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
 
+    <!-- Conteúdo da Página de Equipes -->
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        
+        <!-- Mensagens Flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flashes">
+                <div class="mb-6 space-y-3">
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
                 {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
 
-        <div class="actions mb-3">
-            <a href="{{ url_for("create_team_page") }}" class="btn btn-primary">Criar Nova Equipe</a>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Equipes Golden Runners</h1>
+            <a href="{{ url_for("create_team_page") }}" class="btn-primary">Criar Nova Equipe</a>
         </div>
 
-        <h2>Equipes Existentes</h2>
         {% if teams %}
-            <ul class="list-group">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for team in teams %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="card p-6 flex flex-col justify-between">
                         <div>
-                            <h5>{{ team.name }}</h5>
-                            <p>{{ team.description or "Sem descrição" }}</p>
-                            <small>Criada em: {{ team.created_at.strftime("%d/%m/%Y") if team.created_at else "N/A" }}</small>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ team.name }}</h3>
+                            <p class="text-sm text-gray-600 mb-4">{{ team.description or "Sem descrição fornecida." }}</p>
                         </div>
-                        {# Lógica para mostrar botão de entrar/sair ou indicar que já pertence #}
-                        {% if g.user and g.user.team_id == team.id %}
-                            <span class="badge bg-success">Você pertence a esta equipe</span>
-                            {# Adicionar botão de sair se necessário #}
-                            {# <form action="{{ url_for("leave_team", team_id=team.id) }}" method="post" style="display: inline;">
-                                <button type="submit" class="btn btn-sm btn-warning">Sair da Equipe</button>
-                            </form> #}
-                        {% elif g.user and not g.user.team_id %}
-                            <form action="{{ url_for("join_team", team_id=team.id) }}" method="post" style="display: inline;">
-                                <button type="submit" class="btn btn-sm btn-info">Entrar na Equipe</button>
-                            </form>
-                        {% elif g.user and g.user.team_id != team.id %}
-                             <span class="badge bg-secondary">Você já pertence a outra equipe</span>
-                        {% endif %}
-                    </li>
+                        <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                            <small class="text-xs text-gray-500">Criada em: {{ team.created_at.strftime("%d/%m/%Y") if team.created_at else "N/A" }}</small>
+                            <div class="ml-4 flex-shrink-0">
+                                {# Lógica para mostrar botão de entrar/sair ou indicar que já pertence #}
+                                {% if g.user and g.user.team_id == team.id %}
+                                    <form action="{{ url_for("leave_team") }}" method="post" style="display: inline;">
+                                        <button type="submit" class="btn-danger">Sair da Equipe</button>
+                                    </form>
+                                {% elif g.user and not g.user.team_id %}
+                                    <form action="{{ url_for("join_team", team_id=team.id) }}" method="post" style="display: inline;">
+                                        <button type="submit" class="btn-secondary">Entrar na Equipe</button>
+                                    </form>
+                                {% elif g.user and g.user.team_id != team.id %}
+                                     <span class="text-xs bg-gray-200 text-gray-600 font-semibold py-1 px-2 rounded-md">Você já está em outra equipe</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 {% endfor %}
-            </ul>
+            </div>
         {% else %}
-            <p>Nenhuma equipe criada ainda. Seja o primeiro!</p>
+            <div class="card p-6 text-center">
+                <p class="text-gray-500">Nenhuma equipe criada ainda. Que tal criar a primeira?</p>
+            </div>
         {% endif %}
-    </div>
+    </main>
 
-    {% include "footer.html" %} {# Assume que o rodapé está em um arquivo separado #}
+    <!-- Footer (Mantido consistente) -->
+    <footer class="bg-gray-900 text-white py-6 mt-auto">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2025 Golden Runners. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
 </body>
 </html>
 

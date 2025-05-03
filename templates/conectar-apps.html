@@ -80,7 +80,7 @@
             {% if strava_connected %}
                 <p class="text-green-600 mb-4">Sua conta Strava está conectada!{% if connection_date %} (Conectado em: {{ connection_date }}){% endif %}</p>
                 <!-- Botão para buscar atividades -->
-                <form method="POST" action="{{ url_for("strava_fetch_activities") }}" class="inline-block mr-2 mb-2">
+                <form method="POST" action="{{ url_for("fetch_strava_activities") }}" class="inline-block mr-2 mb-2">
                     <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Buscar Atividades Recentes
                     </button>
