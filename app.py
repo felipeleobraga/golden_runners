@@ -143,7 +143,7 @@ def dashboard():
             """, (g.user["id"],))
             strava_activities = cur.fetchall()
             cur.close()
-            print(f"Fetched {len(strava_activities)} activities for user {g.user["id"]} for dashboard")
+            print(f"Fetched {len(strava_activities)} activities for user {g.user['id']} for dashboard")
         except (Exception, psycopg2.DatabaseError) as db_error:
             error_details = traceback.format_exc()
             print(f"!!! DB ERROR fetching Strava activities for dashboard: {db_error}\n{error_details}")
