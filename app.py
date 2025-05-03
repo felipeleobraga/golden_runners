@@ -174,20 +174,23 @@ def dashboard():
     conn = None
 
     if strava_connected:
-        print("DEBUG: Strava is connected, attempting to fetch activities from DB.")
+        print("DEBUG: Strava is connected, attempting to fetch activities from DB for dashboard.")
         try:
             conn = get_db_connection()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            print(f"DEBUG: Fetching activities for user_id: {g.user['id']}") 
+            # --- CORREÇÃO: Adicionado filtro por tipo ("Run", "Walk") na query do dashboard --- 
+            print(f"DEBUG: Fetching Run/Walk activities for user_id: {g.user["id"]}") 
             cur.execute("""
                 SELECT id, name, distance, moving_time, type, start_date
                 FROM strava_activities
                 WHERE user_id = %s
+                  AND type IN ("Run", "Walk") 
                 ORDER BY start_date DESC
                 LIMIT 5
             """, (g.user["id"],))
+            # ----------------------------------------------------------------------------------
             strava_activities = cur.fetchall()
-            print(f"DEBUG: Fetched {len(strava_activities)} activities from DB: {strava_activities}")
+            print(f"DEBUG: Fetched {len(strava_activities)} Run/Walk activities from DB: {strava_activities}")
             cur.close()
         except (Exception, psycopg2.DatabaseError) as db_error:
             error_details = traceback.format_exc()
@@ -214,6 +217,43 @@ def dashboard():
         print(f"!!! CRITICAL Render ERROR dashboard: {e}\n{traceback.format_exc()}") 
         # Retorna uma mensagem de erro mais genérica para o usuário
         return "Erro interno ao carregar o dashboard. Por favor, tente novamente mais tarde.", 500
+
+# --- Rota de Ranking --- 
+@app.route("/ranking")
+@login_required
+def ranking_page():
+    print("DEBUG: Accessing ranking_page route")
+    conn = None
+    users_ranking = []
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        print("DEBUG: Fetching users for ranking from DB")
+        # Busca usuários ordenados por pontos (maior primeiro), limitando a 100 por exemplo
+        cur.execute("""
+            SELECT username, points 
+            FROM users
+            ORDER BY points DESC, username ASC
+            LIMIT 100 
+        """)
+        users_ranking = cur.fetchall()
+        print(f"DEBUG: Fetched {len(users_ranking)} users for ranking")
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as db_error:
+        error_details = traceback.format_exc()
+        print(f"!!! DB ERROR fetching ranking: {db_error}\n{error_details}")
+        flash("Erro ao carregar o ranking.", "error")
+    finally:
+        if conn:
+            print("DEBUG: Closing DB connection in ranking route.")
+            conn.close()
+    
+    try:
+        print("DEBUG: Rendering ranking.html")
+        return render_template("ranking.html", users_ranking=users_ranking)
+    except Exception as render_error:
+        print(f"!!! Render ERROR ranking: {render_error}\n{traceback.format_exc()}")
+        return "Erro ao carregar a página de ranking.", 500
 
 # --- Rotas do Mural de Doações --- 
 
@@ -357,7 +397,7 @@ def item_detail(item_id):
 def express_interest(item_id):
     print(f"DEBUG: Accessing express_interest route for item_id: {item_id}")
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
-    print(f"DEBUG: User {g.user['id']} expressed interest in item {item_id}") 
+    print(f"DEBUG: User {g.user["id"]} expressed interest in item {item_id}") 
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
 
@@ -451,7 +491,7 @@ def strava_callback():
         print(f"DEBUG: Fetch token parameters (excluding secret): {fetch_params_log}")
         token = strava.fetch_token(STRAVA_TOKEN_URL, client_secret=STRAVA_CLIENT_SECRET, code=code, include_client_id=True)
         # Não logar o token completo em produção, apenas confirmação
-        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else 'None'}") 
+        print(f"DEBUG: Received token response (keys only): {list(token.keys()) if token else "None"}") 
 
         if not token or "access_token" not in token:
              print("!!! ERROR: Access token missing in Strava response!")
@@ -534,7 +574,7 @@ def strava_fetch_activities():
     user_registration_date = g.user.get("created_at")
     if not user_registration_date:
         # Fallback: Se não encontrar a data (usuário antigo?), busca no DB
-        print(f"WARN: User created_at not found in g.user for user {g.user['id']}. Fetching from DB.")
+        print(f"WARN: User created_at not found in g.user for user {g.user["id"]}. Fetching from DB.")
         conn_temp = None
         try:
             conn_temp = get_db_connection()
@@ -548,7 +588,7 @@ def strava_fetch_activities():
                 print(f"DEBUG: Fetched user created_at from DB: {user_registration_date}")
             else:
                 # Se ainda não encontrar, usa uma data muito antiga para incluir tudo
-                print(f"!!! ERROR: Could not find registration date for user {g.user['id']}. Points calculation might be incorrect.")
+                print(f"!!! ERROR: Could not find registration date for user {g.user["id"]}. Points calculation might be incorrect.")
                 user_registration_date = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
                 flash("Erro ao encontrar data de cadastro. Cálculo de pontos pode incluir atividades antigas.", "error")
         except Exception as e:
@@ -586,7 +626,7 @@ def strava_fetch_activities():
         response = strava_session.get(activities_url, params=params)
         response.raise_for_status() 
         activities = response.json()
-        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user['id']}") 
+        print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user["id"]}") 
 
         if not activities:
             print("INFO: No recent activities found on Strava API since registration.")
@@ -668,13 +708,13 @@ def strava_fetch_activities():
             conn = get_db_connection()
         cur = conn.cursor() # Abre ou reabre o cursor
         
-        print(f"DEBUG: Recalculating total points for user {g.user['id']} with filters (type=Run/Walk, after={user_registration_date})")
+        print(f"DEBUG: Recalculating total points for user {g.user["id"]} with filters (type=Run/Walk, after={user_registration_date})")
         # --- CORREÇÃO: Usar aspas simples para strings SQL --- 
         sql_calculate_points = """
             SELECT SUM(distance) 
             FROM strava_activities 
             WHERE user_id = %s 
-              AND type IN ('Run', 'Walk') 
+              AND type IN ("Run", "Walk") 
               AND start_date >= %s
         """
         # ----------------------------------------------------
@@ -686,10 +726,10 @@ def strava_fetch_activities():
         total_points = math.floor((total_distance_meters / 1000) * 10) if total_distance_meters else 0
         print(f"DEBUG: Calculated total points: {total_points}")
 
-        print(f"DEBUG: Updating user points in DB for user {g.user['id']}")
+        print(f"DEBUG: Updating user points in DB for user {g.user["id"]}")
         cur.execute("UPDATE users SET points = %s WHERE id = %s", (total_points, g.user["id"]))
         conn.commit()
-        print(f"DEBUG: User points updated to {total_points} for user {g.user['id']}.") 
+        print(f"DEBUG: User points updated to {total_points} for user {g.user["id"]}.") 
         # -------------------------------------------------
 
         cur.close()
