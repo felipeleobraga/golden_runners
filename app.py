@@ -178,7 +178,6 @@ def dashboard():
         try:
             conn = get_db_connection()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            # CORRIGIDO: Aspas simples dentro da f-string (linha 182)
             print(f"DEBUG: Fetching activities for user_id: {g.user['id']}") 
             cur.execute("""
                 SELECT id, name, distance, moving_time, type, start_date
@@ -358,7 +357,6 @@ def item_detail(item_id):
 def express_interest(item_id):
     print(f"DEBUG: Accessing express_interest route for item_id: {item_id}")
     # Lógica futura: registrar interesse no banco, notificar doador, etc.
-    # CORRIGIDO: Aspas simples dentro da f-string
     print(f"DEBUG: User {g.user['id']} expressed interest in item {item_id}") 
     flash("Seu interesse foi registrado! O doador será notificado (funcionalidade futura).", "info")
     return redirect(url_for("item_detail", item_id=item_id))
@@ -377,8 +375,16 @@ def conectar_page():
         print(f"DEBUG: Connection date raw: {connection_date}")
         if connection_date:
             try:
-                connection_date = connection_date.strftime("%d/%m/%Y às %H:%M")
-                print(f"DEBUG: Connection date formatted: {connection_date}")
+                # Garante que a data seja timezone-aware antes de formatar
+                if connection_date.tzinfo is None:
+                    connection_date = connection_date.replace(tzinfo=datetime.timezone.utc)
+                else:
+                    connection_date = connection_date.astimezone(datetime.timezone.utc)
+                # Formata para o fuso horário local (ex: São Paulo) - requer pytz ou similar
+                # Por simplicidade, vamos formatar em UTC ou deixar como está
+                connection_date_formatted = connection_date.strftime("%d/%m/%Y às %H:%M UTC")
+                print(f"DEBUG: Connection date formatted: {connection_date_formatted}")
+                connection_date = connection_date_formatted # Usa a string formatada
             except AttributeError:
                  connection_date = str(connection_date)
                  print(f"DEBUG: Connection date fallback to string: {connection_date}")
@@ -541,19 +547,27 @@ def strava_fetch_activities():
                 g.user["created_at"] = user_registration_date # Atualiza em g.user para futuras chamadas
                 print(f"DEBUG: Fetched user created_at from DB: {user_registration_date}")
             else:
-                # Se ainda não encontrar, usa uma data muito antiga para incluir tudo (ou lança erro?)
+                # Se ainda não encontrar, usa uma data muito antiga para incluir tudo
                 print(f"!!! ERROR: Could not find registration date for user {g.user['id']}. Points calculation might be incorrect.")
-                # Define uma data padrão antiga para não quebrar, mas loga o erro
                 user_registration_date = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
                 flash("Erro ao encontrar data de cadastro. Cálculo de pontos pode incluir atividades antigas.", "error")
         except Exception as e:
             print(f"!!! DB ERROR fetching user created_at: {e}\n{traceback.format_exc()}")
             flash("Erro ao buscar data de cadastro.", "error")
-            # Define uma data padrão antiga para não quebrar
             user_registration_date = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
         finally:
             if conn_temp:
                 conn_temp.close()
+
+    # --- CORREÇÃO: Garantir que user_registration_date seja timezone-aware (UTC) --- 
+    if user_registration_date.tzinfo is None:
+        print(f"WARN: user_registration_date {user_registration_date} was naive. Assuming UTC.")
+        user_registration_date = user_registration_date.replace(tzinfo=datetime.timezone.utc)
+    else:
+        # Converte para UTC se tiver outro fuso horário
+        user_registration_date = user_registration_date.astimezone(datetime.timezone.utc)
+    print(f"DEBUG: Ensured user_registration_date is UTC: {user_registration_date}")
+    # --------------------------------------------------------------------------
 
     access_token = g.strava_token_data["access_token"]
     strava_session = OAuth2Session(token={"access_token": access_token})
@@ -565,15 +579,13 @@ def strava_fetch_activities():
     try:
         # Busca atividades da API do Strava
         activities_url = f"{STRAVA_API_BASE_URL}/athlete/activities"
-        # Adiciona filtro 'after' na API se possível (melhor performance)
-        # Convertendo user_registration_date para timestamp Unix
-        after_timestamp = int(user_registration_date.timestamp())
+        # Convertendo user_registration_date (já UTC) para timestamp Unix
+        after_timestamp = int(user_registration_date.timestamp()) # Deve funcionar agora
         params = {"per_page": 50, "after": after_timestamp} # Busca 50 atividades APÓS o cadastro
         print(f"DEBUG: Fetching activities from Strava API: {activities_url} with params: {params}")
         response = strava_session.get(activities_url, params=params)
         response.raise_for_status() 
         activities = response.json()
-        # CORRIGIDO: Aspas simples dentro da f-string
         print(f"DEBUG: Fetched {len(activities)} activities from Strava API for user {g.user['id']}") 
 
         if not activities:
@@ -600,9 +612,9 @@ def strava_fetch_activities():
                 try:
                     activity_id = activity["id"]
                     print(f"DEBUG: Processing activity {activity_id}")
-                    start_date_dt = datetime.datetime.fromisoformat(activity["start_date"].replace("Z", "+00:00"))
+                    start_date_dt = datetime.datetime.fromisoformat(activity["start_date"].replace("Z", "+00:00")) # Já é UTC aware
                     
-                    # Pula atividades anteriores ao cadastro (redundante com filtro API, mas seguro)
+                    # Comparação deve funcionar agora que ambas são UTC aware
                     if start_date_dt < user_registration_date:
                         print(f"DEBUG: Skipping activity {activity_id} (before registration date {user_registration_date})")
                         skipped_count += 1
@@ -657,13 +669,15 @@ def strava_fetch_activities():
         cur = conn.cursor() # Abre ou reabre o cursor
         
         print(f"DEBUG: Recalculating total points for user {g.user['id']} with filters (type=Run/Walk, after={user_registration_date})")
+        # --- CORREÇÃO: Usar aspas simples para strings SQL --- 
         sql_calculate_points = """
             SELECT SUM(distance) 
             FROM strava_activities 
             WHERE user_id = %s 
-              AND type IN ("Run", "Walk") 
+              AND type IN ('Run', 'Walk') 
               AND start_date >= %s
         """
+        # ----------------------------------------------------
         cur.execute(sql_calculate_points, (g.user["id"], user_registration_date))
         total_distance_result = cur.fetchone()
         total_distance_meters = total_distance_result[0] if total_distance_result and total_distance_result[0] else 0.0
@@ -708,4 +722,5 @@ if __name__ == "__main__":
     # Ex: gunicorn --bind 0.0.0.0:5000 app:app
     print("Starting Flask development server...")
     app.run(debug=True, host="0.0.0.0", port=5000)
+
 
