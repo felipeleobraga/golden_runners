@@ -13,6 +13,7 @@ from flask import Flask, render_template, session, g, flash, redirect, url_for, 
 from dotenv import load_dotenv
 from functools import wraps
 from requests_oauthlib import OAuth2Session # Adicionado para OAuth
+from werkzeug.middleware.proxy_fix import ProxyFix # ADICIONADO PARA CORRIGIR HTTPS ATRÁS DE PROXY
 
 # Importar o blueprint de autenticação
 from auth import auth_bp
@@ -22,6 +23,10 @@ load_dotenv()
 
 # Criar a instância da aplicação Flask
 app = Flask(__name__)
+
+# Aplicar ProxyFix para que o app reconheça X-Forwarded-Proto (HTTPS)
+# Isso é crucial quando rodando atrás de um proxy como o do Railway
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Configurar uma chave secreta (necessária para sessões, flash messages, etc.)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "a_more_secure_default_secret_key_if_not_set")
@@ -33,7 +38,7 @@ STRAVA_AUTHORIZATION_URL = "https://www.strava.com/oauth/authorize"
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 STRAVA_API_BASE_URL = "https://www.strava.com/api/v3"
 STRAVA_REDIRECT_URI = os.environ.get("STRAVA_REDIRECT_URI", "http://localhost:5000/strava/callback") 
-STRAVA_SCOPES = ["activity:read"] # MODIFICADO: Apenas activity:read
+STRAVA_SCOPES = ["activity:read"] # Mantido: Apenas activity:read
 
 # Registrar o blueprint de autenticação
 app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -596,7 +601,7 @@ def strava_callback():
         token_response = strava_oauth.fetch_token(
             STRAVA_TOKEN_URL,
             client_secret=STRAVA_CLIENT_SECRET,
-            authorization_response=request.url
+            authorization_response=request.url # request.url deve ser HTTPS aqui
         )
         print("DEBUG: [strava_callback] Token fetched successfully from Strava.")
 
@@ -654,6 +659,14 @@ def strava_callback():
             if conn:
                 conn.close()
 
+    except requests.exceptions.SSLError as ssl_err:
+        error_details = traceback.format_exc()
+        print(f"!!! STRAVA SSL ERROR [strava_callback]: {ssl_err}\n{error_details}")
+        flash(f"Erro de SSL ao comunicar com o Strava: {ssl_err}. Verifique a configuração do seu ambiente.", "error")
+    except oauthlib.oauth2.rfc6749.errors.InsecureTransportError as insecure_err:
+        error_details = traceback.format_exc()
+        print(f"!!! STRAVA INSECURE TRANSPORT ERROR [strava_callback]: {insecure_err}\n{error_details}")
+        flash(f"Erro de transporte inseguro com o Strava: {insecure_err}. O callback deve ser HTTPS.", "error")
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"!!! STRAVA OAUTH ERROR [strava_callback] during token fetch or processing: {e}\n{error_details}")
