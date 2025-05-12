@@ -89,10 +89,10 @@
                 <!-- DEBUG: strava_connected = {{ strava_connected }} -->
                 {% if strava_connected %}
                     <p class="text-green-600 mb-2">Conta Strava conectada!</p>
-                    <a href="{{ url_for("conectar_page") }}" class="text-blue-500 hover:underline">Gerenciar conexão</a>
+                    <a href="{{ url_for("conectar_apps_page") }}" class="text-blue-500 hover:underline">Gerenciar conexão</a>
                 {% else %}
                     <p class="mb-4">Sincronize suas atividades automaticamente.</p>
-                    <a href="{{ url_for("conectar_page") }}" 
+                    <a href="{{ url_for("conectar_apps_page") }}" 
                        class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Conectar Strava
                     </a>
@@ -148,7 +148,7 @@
                     </table>
                 </div>
             {% else %}
-                <p class="text-gray-500">Nenhuma atividade recente encontrada. Clique em "Buscar Atividades Recentes" na <a href="{{ url_for("conectar_page") }}" class="text-blue-500 hover:underline">página de conexão</a>.</p>
+                <p class="text-gray-500">Nenhuma atividade recente encontrada. Clique em "Buscar Atividades Recentes" na <a href="{{ url_for("conectar_apps_page") }}" class="text-blue-500 hover:underline">página de conexão</a>.</p>
             {% endif %}
         </div>
         {% endif %}
