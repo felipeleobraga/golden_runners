@@ -33,7 +33,7 @@ STRAVA_AUTHORIZATION_URL = "https://www.strava.com/oauth/authorize"
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 STRAVA_API_BASE_URL = "https://www.strava.com/api/v3"
 STRAVA_REDIRECT_URI = os.environ.get("STRAVA_REDIRECT_URI", "http://localhost:5000/strava/callback") 
-STRAVA_SCOPES = ["read", "activity:read"]
+STRAVA_SCOPES = ["activity:read"] # MODIFICADO: Apenas activity:read
 
 # Registrar o blueprint de autenticação
 app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -364,22 +364,17 @@ def join_team(team_id):
             flash("Você já faz parte de uma equipe. Saia da equipe atual para entrar em uma nova.", "warning")
             return redirect(url_for("list_teams_page"))
 
-        sql = "UPDATE users SET team_id = %s WHERE id = %s"
-        print(f"DEBUG: [join_team] Executing UPDATE query to add user {g.user['id']} to team {team_id}")
-        cur.execute(sql, (team_id, g.user["id"]))
+        cur.execute("UPDATE users SET team_id = %s WHERE id = %s", (team_id, g.user['id']))
         conn.commit()
-        print("DEBUG: [join_team] User successfully joined team.")
         cur.close()
+        # Atualizar g.user para refletir a mudança imediatamente
+        g.user['team_id'] = team_id 
         flash("Você entrou na equipe com sucesso!", "success")
-    except psycopg2.errors.UndefinedTable as ut_err: 
-        error_details = traceback.format_exc()
-        print(f"!!! DB ERROR [join_team]: TABLE 'teams' or 'users' DOES NOT EXIST? {ut_err}\n{error_details}") 
-        flash("Erro ao entrar na equipe: estrutura do banco de dados incompleta.", "error")
-        if conn: conn.rollback()
+        print(f"DEBUG: [join_team] User {g.user['id']} successfully joined team {team_id}")
     except (Exception, psycopg2.DatabaseError) as db_error:
         error_details = traceback.format_exc()
         print(f"!!! DB ERROR [join_team] joining team: {db_error}\n{error_details}")
-        flash("Erro ao entrar na equipe.", "error")
+        flash("Erro ao tentar entrar na equipe.", "error")
         if conn: conn.rollback()
     finally:
         if conn:
@@ -390,32 +385,27 @@ def join_team(team_id):
 @app.route("/teams/leave", methods=["POST"])
 @login_required
 def leave_team():
-    print(f"DEBUG: [leave_team] User {g.user['id']} attempting to leave team.")
+    print(f"DEBUG: [leave_team] User {g.user['id']} attempting to leave team {g.user.get('team_id')}")
+    if g.user.get("team_id") is None:
+        print(f"WARN: [leave_team] User {g.user['id']} is not in any team.")
+        flash("Você não faz parte de nenhuma equipe.", "info")
+        return redirect(url_for("list_teams_page"))
+    
     conn = None
     try:
-        if g.user.get("team_id") is None:
-            print(f"WARN: [leave_team] User {g.user['id']} is not in any team.")
-            flash("Você não faz parte de nenhuma equipe.", "warning")
-            return redirect(url_for("list_teams_page"))
-
         conn = get_db_connection()
         cur = conn.cursor()
-        sql = "UPDATE users SET team_id = NULL WHERE id = %s"
-        print(f"DEBUG: [leave_team] Executing UPDATE query to remove user {g.user['id']} from team.")
-        cur.execute(sql, (g.user["id"],))
+        cur.execute("UPDATE users SET team_id = NULL WHERE id = %s", (g.user['id'],))
         conn.commit()
-        print("DEBUG: [leave_team] User successfully left team.")
         cur.close()
+        # Atualizar g.user para refletir a mudança imediatamente
+        g.user['team_id'] = None
         flash("Você saiu da equipe.", "success")
-    except psycopg2.errors.UndefinedTable as ut_err: 
-        error_details = traceback.format_exc()
-        print(f"!!! DB ERROR [leave_team]: TABLE 'users' DOES NOT EXIST? {ut_err}\n{error_details}") 
-        flash("Erro ao sair da equipe: estrutura do banco de dados incompleta.", "error")
-        if conn: conn.rollback()
+        print(f"DEBUG: [leave_team] User {g.user['id']} successfully left their team.")
     except (Exception, psycopg2.DatabaseError) as db_error:
         error_details = traceback.format_exc()
         print(f"!!! DB ERROR [leave_team] leaving team: {db_error}\n{error_details}")
-        flash("Erro ao sair da equipe.", "error")
+        flash("Erro ao tentar sair da equipe.", "error")
         if conn: conn.rollback()
     finally:
         if conn:
@@ -428,29 +418,22 @@ def leave_team():
 def mural_page():
     print("DEBUG: [mural_page] Entered route")
     conn = None
-    items = []
+    donation_items = []
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) 
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         print("DEBUG: [mural_page] Fetching donation items from DB")
+        # Corrigido: di.owner_user_id para di.user_id
+        # Corrigido: u.name para u.username
         cur.execute("""
-            SELECT 
-                di.id, di.title, di.description, di.category, 
-                di.status, di.image_url, di.created_at, 
-                u.username AS owner_username, 
-                di.location 
+            SELECT di.id, di.title, di.description, di.category, di.image_filename, di.created_at, u.username AS owner_username
             FROM donation_items di
-            JOIN users u ON di.user_id = u.id
+            JOIN users u ON di.user_id = u.id 
             ORDER BY di.created_at DESC
         """)
-        items = cur.fetchall()
-        print(f"DEBUG: [mural_page] Fetched {len(items)} items from DB")
+        donation_items = cur.fetchall()
+        print(f"DEBUG: [mural_page] Fetched {len(donation_items)} items from DB")
         cur.close()
-    except psycopg2.errors.UndefinedTable as ut_err: 
-        error_details = traceback.format_exc()
-        print(f"!!! DB ERROR [mural_page]: TABLE 'donation_items' or 'users' DOES NOT EXIST? {ut_err}\n{error_details}")
-        flash("Erro ao carregar o mural: a estrutura do banco de dados parece estar incompleta. Contate o suporte.", "error")
-        return redirect(url_for('dashboard')) 
     except (Exception, psycopg2.DatabaseError) as db_error:
         error_details = traceback.format_exc()
         print(f"!!! DB ERROR [mural_page] fetching items: {db_error}\n{error_details}")
@@ -462,10 +445,10 @@ def mural_page():
     
     try:
         print("DEBUG: [mural_page] Rendering mural.html")
-        return render_template("mural.html", items=items)
+        return render_template("mural.html", items=donation_items)
     except Exception as render_error:
         print(f"!!! Render ERROR [mural_page] rendering mural.html: {render_error}\n{traceback.format_exc()}")
-        return "Erro ao carregar a página do mural.", 500
+        return "Erro ao carregar o mural.", 500
 
 @app.route("/mural/add", methods=("GET", "POST"))
 @login_required
@@ -479,11 +462,10 @@ def add_donation_item_page():
             title = request.form.get("title")
             description = request.form.get("description")
             category = request.form.get("category")
-            location = request.form.get("location")
-            image_url = request.form.get("image_url") 
-            current_user_id = g.user["id"] 
-            
-            print(f"DEBUG: [add_donation_item_page] Form data: title='{title}', category='{category}', owner='{current_user_id}'")
+            # Simulação de upload de imagem, apenas salvando o nome do arquivo
+            image_filename = request.form.get("image_filename", "default_item.png") 
+            owner_user_id = g.user["id"]
+            print(f"DEBUG: [add_donation_item_page] Form data: title='{title}', category='{category}', owner='{owner_user_id}'")
 
             if not title or not category:
                 print("WARN: [add_donation_item_page] Validation failed (title or category missing).")
@@ -493,29 +475,20 @@ def add_donation_item_page():
 
             conn = get_db_connection()
             cur = conn.cursor()
-            sql = """
-                INSERT INTO donation_items 
-                (title, description, category, user_id, image_url, location, status)
-                VALUES (%s, %s, %s, %s, %s, %s, 'available')
-            """
+            # Corrigido: owner_user_id para user_id na query e nos parâmetros
+            sql = "INSERT INTO donation_items (title, description, category, image_filename, user_id) VALUES (%s, %s, %s, %s, %s);"
             print("DEBUG: [add_donation_item_page] Executing INSERT query for new donation item")
-            cur.execute(sql, (title, description, category, current_user_id, image_url, location))
+            cur.execute(sql, (title, description, category, image_filename, owner_user_id))
             conn.commit()
             print("DEBUG: [add_donation_item_page] New item inserted and committed.")
             cur.close()
             flash("Item adicionado ao mural com sucesso!", "success")
             return redirect(url_for("mural_page"))
 
-        except psycopg2.errors.UndefinedTable as ut_err: 
-            error_details = traceback.format_exc()
-            print(f"!!! DB ERROR [add_donation_item_page]: TABLE 'donation_items' DOES NOT EXIST? {ut_err}\n{error_details}")
-            flash("Erro ao adicionar item: a estrutura do banco de dados parece estar incompleta.", "error")
-            if conn: conn.rollback()
-            form_data = request.form
         except (Exception, psycopg2.DatabaseError) as db_error:
             error_details = traceback.format_exc()
             print(f"!!! DB ERROR [add_donation_item_page] adding item: {db_error}\n{error_details}")
-            flash("Erro ao adicionar o item no banco de dados.", "error")
+            flash("Erro ao adicionar o item ao banco de dados.", "error")
             if conn: conn.rollback()
             form_data = request.form
         finally:
@@ -530,18 +503,69 @@ def add_donation_item_page():
         print(f"!!! Render ERROR [add_donation_item_page] rendering add_item.html: {render_error}\n{traceback.format_exc()}")
         return "Erro ao carregar a página de adicionar item.", 500
 
+@app.route("/mural/item/<int:item_id>")
+@login_required
+def item_detail(item_id):
+    print(f"DEBUG: [item_detail] Acessada página de detalhes para o item ID: {item_id}")
+    conn = None
+    item = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT di.id, di.title, di.description, di.category, di.image_filename, 
+                   di.created_at, di.user_id, u.username AS owner_username
+            FROM donation_items di
+            JOIN users u ON di.user_id = u.id
+            WHERE di.id = %s
+        """, (item_id,))
+        item = cur.fetchone()
+        cur.close()
+        if not item:
+            print(f"WARN: [item_detail] Item com ID {item_id} não encontrado.")
+            flash("Item não encontrado.", "error")
+            return redirect(url_for("mural_page"))
+    except (Exception, psycopg2.DatabaseError) as db_error:
+        error_details = traceback.format_exc()
+        print(f"!!! DB ERROR [item_detail] fetching item {item_id}: {db_error}\n{error_details}")
+        flash("Erro ao buscar detalhes do item.", "error")
+        return redirect(url_for("mural_page"))
+    finally:
+        if conn:
+            conn.close()
+    
+    try:
+        return render_template("item_detail.html", item=item)
+    except Exception as render_error:
+        print(f"!!! Render ERROR [item_detail] rendering item_detail.html: {render_error}\n{traceback.format_exc()}")
+        return f"Erro ao carregar detalhes do item {item_id}.", 500
+
+@app.route("/conectar-apps")
+@login_required
+def conectar_apps_page():
+    print("DEBUG: [conectar_apps_page] Entered route.")
+    strava_connected = bool(g.strava_token_data)
+    try:
+        print("DEBUG: [conectar_apps_page] Rendering conectar-apps.html")
+        return render_template("conectar-apps.html", strava_connected=strava_connected)
+    except Exception as render_error:
+        print(f"!!! Render ERROR [conectar_apps_page] rendering conectar-apps.html: {render_error}\n{traceback.format_exc()}")
+        return "Erro ao carregar a página de conexão de aplicativos.", 500
+
+# --- Rotas de Autenticação Strava --- 
+
 @app.route("/strava/login")
 @login_required
 def strava_login():
     print("DEBUG: [strava_login] Initiating Strava OAuth flow.")
     if not STRAVA_CLIENT_ID or not STRAVA_CLIENT_SECRET or not STRAVA_REDIRECT_URI:
-        print("!!! ERROR: Strava client credentials or redirect URI not configured.")
-        flash("Configuração do Strava incompleta no servidor. Não é possível conectar.", "error")
+        print("!!! CRITICAL ERROR: Strava client credentials or redirect URI not configured.")
+        flash("A integração com o Strava não está configurada corretamente. Contate o administrador.", "error")
         return redirect(url_for("conectar_apps_page"))
-    
-    strava_session = OAuth2Session(STRAVA_CLIENT_ID, redirect_uri=STRAVA_REDIRECT_URI, scope=STRAVA_SCOPES)
-    authorization_url, state = strava_session.authorization_url(STRAVA_AUTHORIZATION_URL)
-    session["strava_oauth_state"] = state 
+
+    strava_oauth = OAuth2Session(STRAVA_CLIENT_ID, redirect_uri=STRAVA_REDIRECT_URI, scope=STRAVA_SCOPES)
+    authorization_url, state = strava_oauth.authorization_url(STRAVA_AUTHORIZATION_URL)
+    session["strava_oauth_state"] = state
     print(f"DEBUG: [strava_login] Redirecting to Strava: {authorization_url}")
     return redirect(authorization_url)
 
@@ -549,87 +573,91 @@ def strava_login():
 @login_required
 def strava_callback():
     print("DEBUG: [strava_callback] Received callback from Strava.")
-    if request.args.get("state") != session.get("strava_oauth_state"):
-        print("!!! ERROR: [strava_callback] OAuth state mismatch. Possible CSRF.")
-        flash("Erro de segurança na autenticação com o Strava (state mismatch).", "error")
-        return redirect(url_for("conectar_apps_page"))
-
     if "error" in request.args:
-        error_description = request.args.get("error", "desconhecido")
-        print(f"WARN: [strava_callback] Strava authorization denied or failed: {error_description}")
-        flash(f"Acesso ao Strava negado ou falhou: {error_description}.", "warning")
+        error_reason = request.args.get("error", "unknown")
+        print(f"!!! STRAVA AUTH ERROR: Strava returned an error: {error_reason}")
+        flash(f"Erro na autorização do Strava: {error_reason}. Tente novamente.", "error")
         return redirect(url_for("conectar_apps_page"))
 
-    strava_session = OAuth2Session(STRAVA_CLIENT_ID, state=session.get("strava_oauth_state"), redirect_uri=STRAVA_REDIRECT_URI)
+    if not STRAVA_CLIENT_ID or not STRAVA_CLIENT_SECRET:
+        print("!!! CRITICAL ERROR: Strava client credentials not configured for token exchange.")
+        flash("Configuração do Strava incompleta. Contate o administrador.", "error")
+        return redirect(url_for("conectar_apps_page"))
+
+    strava_oauth = OAuth2Session(
+        STRAVA_CLIENT_ID, 
+        state=session.get("strava_oauth_state"), 
+        scope=STRAVA_SCOPES, 
+        redirect_uri=STRAVA_REDIRECT_URI
+    )
     
-    conn = None
     try:
-        print("DEBUG: [strava_callback] Fetching token from Strava.")
-        token_response = strava_session.fetch_token(
+        print("DEBUG: [strava_callback] Attempting to fetch token from Strava.")
+        token_response = strava_oauth.fetch_token(
             STRAVA_TOKEN_URL,
             client_secret=STRAVA_CLIENT_SECRET,
-            authorization_response=request.url 
+            authorization_response=request.url
         )
         print("DEBUG: [strava_callback] Token fetched successfully from Strava.")
-        
+
         access_token = token_response.get("access_token")
         refresh_token = token_response.get("refresh_token")
         expires_at_timestamp = token_response.get("expires_at")
-        expires_at_dt = datetime.datetime.fromtimestamp(expires_at_timestamp, tz=datetime.timezone.utc)
-        
         strava_athlete_id = token_response.get("athlete", {}).get("id")
-        if not strava_athlete_id:
-            print("!!! ERROR: [strava_callback] Strava athlete ID not found in token response.")
-            flash("Não foi possível obter o ID do atleta do Strava.", "error")
+        
+        if not access_token or not expires_at_timestamp or not strava_athlete_id:
+            print("!!! STRAVA TOKEN ERROR: Missing essential data in token response from Strava.")
+            flash("Resposta do Strava incompleta ao obter o token. Tente novamente.", "error")
             return redirect(url_for("conectar_apps_page"))
 
-        print(f"DEBUG: [strava_callback] Strava Athlete ID: {strava_athlete_id}, Access Token: {access_token[:10]}..., Expires at: {expires_at_dt}")
+        expires_at_datetime = datetime.datetime.fromtimestamp(expires_at_timestamp, tz=datetime.timezone.utc)
+        current_user_id = g.user["id"]
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        sql_upsert = """
-            INSERT INTO strava_tokens (user_id, strava_athlete_id, access_token, refresh_token, expires_at, scope)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (user_id) DO UPDATE SET
-                strava_athlete_id = EXCLUDED.strava_athlete_id,
-                access_token = EXCLUDED.access_token,
-                refresh_token = EXCLUDED.refresh_token,
-                expires_at = EXCLUDED.expires_at,
-                scope = EXCLUDED.scope,
-                updated_at = NOW();
-        """
-        print("DEBUG: [strava_callback] Upserting Strava token into DB.")
-        cur.execute(sql_upsert, (
-            g.user["id"],
-            strava_athlete_id,
-            access_token,
-            refresh_token,
-            expires_at_dt,
-            json.dumps(STRAVA_SCOPES) 
-        ))
-        conn.commit()
-        print("DEBUG: [strava_callback] Strava token saved to DB.")
-        cur.close()
-        
-        flash("Conexão com o Strava realizada com sucesso!", "success")
-        return redirect(url_for("conectar_apps_page"))
+        conn = None
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            print(f"DEBUG: [strava_callback] Storing/Updating Strava token for user {current_user_id} in DB.")
+            # Upsert (insert or update) token data
+            cur.execute("""
+                INSERT INTO strava_tokens (user_id, access_token, refresh_token, expires_at, strava_athlete_id, scopes)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    access_token = EXCLUDED.access_token,
+                    refresh_token = EXCLUDED.refresh_token,
+                    expires_at = EXCLUDED.expires_at,
+                    strava_athlete_id = EXCLUDED.strava_athlete_id,
+                    scopes = EXCLUDED.scopes,
+                    updated_at = NOW(); 
+            """, (current_user_id, access_token, refresh_token, expires_at_datetime, strava_athlete_id, json.dumps(STRAVA_SCOPES)))
+            conn.commit()
+            cur.close()
+            print("DEBUG: [strava_callback] Strava token stored/updated in DB successfully.")
+            flash("Strava conectado com sucesso!", "success")
+            # Atualizar g.strava_token_data para refletir o novo token imediatamente
+            g.strava_token_data = {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "expires_at": expires_at_datetime,
+                "strava_athlete_id": strava_athlete_id,
+                "scopes": STRAVA_SCOPES
+            }
+            # Chamar a função para buscar atividades após conectar
+            fetch_strava_activities(current_user_id, access_token, strava_athlete_id)
 
-    except requests.exceptions.RequestException as req_err:
+        except (Exception, psycopg2.DatabaseError) as db_error:
+            error_details = traceback.format_exc()
+            print(f"!!! DB ERROR [strava_callback] storing token: {db_error}\n{error_details}")
+            flash("Erro ao salvar as informações de conexão do Strava.", "error")
+            if conn: conn.rollback()
+        finally:
+            if conn:
+                conn.close()
+
+    except Exception as e:
         error_details = traceback.format_exc()
-        print(f"!!! NETWORK ERROR [strava_callback] fetching token: {req_err}\n{error_details}")
-        flash("Erro de comunicação ao tentar obter o token do Strava.", "error")
-    except (psycopg2.Error, Exception) as db_err: 
-        error_details = traceback.format_exc()
-        print(f"!!! DB/GENERAL ERROR [strava_callback] saving token: {db_err}\n{error_details}")
-        if conn: conn.rollback()
-        flash("Erro ao salvar as informações de conexão com o Strava.", "error")
-    finally:
-        if conn:
-            print("DEBUG: [strava_callback] Closing DB connection.")
-            conn.close()
-        if "strava_oauth_state" in session:
-            del session["strava_oauth_state"] 
-            print("DEBUG: [strava_callback] OAuth state cleared from session.")
+        print(f"!!! STRAVA OAUTH ERROR [strava_callback] during token fetch or processing: {e}\n{error_details}")
+        flash(f"Ocorreu um erro durante a autenticação com o Strava: {e}. Tente novamente.", "error")
 
     return redirect(url_for("conectar_apps_page"))
 
@@ -637,244 +665,222 @@ def strava_callback():
 @login_required
 def strava_disconnect():
     print(f"DEBUG: [strava_disconnect] User {g.user['id']} attempting to disconnect Strava.")
+    current_user_id = g.user["id"]
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        sql_delete = "DELETE FROM strava_tokens WHERE user_id = %s"
-        print("DEBUG: [strava_disconnect] Executing DELETE query for Strava token.")
-        cur.execute(sql_delete, (g.user["id"],))
+        # Revogar o token no Strava (opcional, mas boa prática)
+        if g.strava_token_data and g.strava_token_data.get("access_token"):
+            try:
+                print(f"DEBUG: [strava_disconnect] Attempting to revoke Strava token for user {current_user_id}")
+                revoke_url = f"{STRAVA_API_BASE_URL}/oauth/deauthorize"
+                headers = {"Authorization": f"Bearer {g.strava_token_data['access_token']}"}
+                response = requests.post(revoke_url, headers=headers)
+                if response.status_code == 200:
+                    print(f"DEBUG: [strava_disconnect] Strava token successfully revoked for user {current_user_id}.")
+                else:
+                    print(f"WARN: [strava_disconnect] Failed to revoke Strava token. Status: {response.status_code}, Response: {response.text}")
+            except Exception as revoke_err:
+                print(f"WARN: [strava_disconnect] Error during Strava token revocation: {revoke_err}")
+
+        print(f"DEBUG: [strava_disconnect] Deleting Strava token and activities from DB for user {current_user_id}.")
+        cur.execute("DELETE FROM strava_tokens WHERE user_id = %s", (current_user_id,))
+        cur.execute("DELETE FROM strava_activities WHERE user_id = %s", (current_user_id,))
         conn.commit()
-        print("DEBUG: [strava_disconnect] Strava token deleted from DB.")
         cur.close()
+        g.strava_token_data = None # Limpar da sessão global
         flash("Strava desconectado com sucesso.", "success")
+        print(f"DEBUG: [strava_disconnect] Strava disconnected successfully for user {current_user_id}.")
     except (Exception, psycopg2.DatabaseError) as db_error:
         error_details = traceback.format_exc()
-        print(f"!!! DB ERROR [strava_disconnect] deleting token: {db_error}\n{error_details}")
-        if conn: conn.rollback()
+        print(f"!!! DB ERROR [strava_disconnect]: {db_error}\n{error_details}")
         flash("Erro ao desconectar o Strava.", "error")
+        if conn: conn.rollback()
     finally:
         if conn:
-            print("DEBUG: [strava_disconnect] Closing DB connection.")
             conn.close()
     return redirect(url_for("conectar_apps_page"))
 
-@app.route("/strava/fetch_activities", methods=["POST"])
-@login_required
-def fetch_strava_activities():
-    print(f"DEBUG: [fetch_strava_activities] User {g.user['id']} attempting to fetch Strava activities.")
-    if not g.strava_token_data:
-        print("WARN: [fetch_strava_activities] No Strava token found for user. Redirecting.")
-        flash("Você precisa conectar sua conta Strava primeiro.", "warning")
-        return redirect(url_for("conectar_apps_page"))
-
-    access_token = g.strava_token_data.get("access_token")
+def fetch_strava_activities(user_id, access_token, strava_athlete_id):
+    print(f"DEBUG: [fetch_strava_activities] Fetching activities for user {user_id}, athlete {strava_athlete_id}")
     headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"per_page": 30, "page": 1}
+    # Buscar atividades após a última atividade já registrada ou nos últimos 90 dias
+    conn_check = None
+    last_fetch_timestamp = None
+    try:
+        conn_check = get_db_connection()
+        cur_check = conn_check.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur_check.execute("SELECT MAX(start_date_epoch) as last_epoch FROM strava_activities WHERE user_id = %s", (user_id,))
+        last_activity_data = cur_check.fetchone()
+        if last_activity_data and last_activity_data['last_epoch']:
+            last_fetch_timestamp = int(last_activity_data['last_epoch']) + 1 # Buscar após o último evento
+            print(f"DEBUG: [fetch_strava_activities] Last fetch timestamp for user {user_id}: {last_fetch_timestamp}")
+        else:
+            # Se não houver atividades, buscar dos últimos 90 dias
+            last_fetch_timestamp = int((datetime.datetime.now() - datetime.timedelta(days=90)).timestamp())
+            print(f"DEBUG: [fetch_strava_activities] No previous activities, fetching last 90 days for user {user_id}. Timestamp: {last_fetch_timestamp}")
+        cur_check.close()
+    except Exception as e_check:
+        print(f"WARN: [fetch_strava_activities] Error getting last fetch time for user {user_id}: {e_check}. Defaulting to 90 days.")
+        last_fetch_timestamp = int((datetime.datetime.now() - datetime.timedelta(days=90)).timestamp())
+    finally:
+        if conn_check:
+            conn_check.close()
+
+    params = {"after": last_fetch_timestamp, "per_page": 100} # Limite de 100 por página
     activities_url = f"{STRAVA_API_BASE_URL}/athlete/activities"
     
-    conn = None
-    activities_fetched_count = 0
-    activities_saved_count = 0
-    points_earned_total = 0
-
-    try:
-        print(f"DEBUG: [fetch_strava_activities] Fetching activities from Strava API: {activities_url}")
-        response = requests.get(activities_url, headers=headers, params=params)
-        response.raise_for_status() 
-        activities_data = response.json()
-        activities_fetched_count = len(activities_data)
-        print(f"DEBUG: [fetch_strava_activities] Fetched {activities_fetched_count} activities from Strava API.")
-
-        if not activities_data:
-            flash("Nenhuma nova atividade encontrada no Strava.", "info")
-            return redirect(url_for("conectar_apps_page"))
-
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        for activity in activities_data:
-            activity_id = activity.get("id")
-            activity_type = activity.get("type")
-            
-            relevant_types = [
-                'Run', 'Walk', 'VirtualRun', 'TrailRun', 'Hike', 'Wheelchair', 'Snowshoe',
-                'Crossfit', 'Elliptical', 'StairStepper', 'WeightTraining', 'Workout', 'Yoga',
-                'Swim', 'VirtualRide', 'Ride', 'EBikeRide', 'GravelRide', 'Handcycle', 
-                'MountainBikeRide', 'RollerSki', 'NordicSki', 'AlpineSki', 'BackcountrySki', 
-                'IceSkate', 'InlineSkate', 'RockClimbing', 'Rowing', 'Sail', 'Skateboard', 
-                'Soccer', 'Surfing', 'Velomobile', 'Windsurf', 'Wingfoil', 'Golf', 
-                'Pickleball', 'Racquetball', 'Badminton', 'Squash', 'TableTennis', 'Tennis', 
-                'Canoeing', 'Kayaking', 'Kitesurf', 'StandUpPaddling', 'WaterSki', 
-                'Windsurf', 'Rowing', 'VirtualRow'
-            ]
-            if activity_type not in relevant_types:
-                print(f"DEBUG: [fetch_strava_activities] Skipping activity ID {activity_id} of type '{activity_type}'.")
-                continue
-            
-            cur.execute("SELECT id FROM strava_activities WHERE id = %s AND user_id = %s", (activity_id, g.user["id"]))
-            if cur.fetchone():
-                print(f"DEBUG: [fetch_strava_activities] Activity ID {activity_id} already exists. Skipping.")
-                continue 
-
-            points_earned = 0
-            distance_km = activity.get("distance", 0) / 1000 
-            duration_min = activity.get("moving_time", 0) / 60 
-
-            if activity_type in ['Run', 'Walk', 'VirtualRun', 'TrailRun', 'Hike', 'Wheelchair']:
-                points_earned = math.floor(distance_km * 10) 
-            elif duration_min > 0:
-                points_earned = math.floor(duration_min * 1)
-            
-            if points_earned <= 0:
-                print(f"DEBUG: [fetch_strava_activities] Activity ID {activity_id} ('{activity.get('name')}') earned 0 points. Skipping save.")
-                continue
-
-            sql_insert_activity = """
-                INSERT INTO strava_activities 
-                (id, user_id, name, distance, moving_time, elapsed_time, type, 
-                 start_date, start_date_local, timezone, total_elevation_gain, 
-                 average_speed, max_speed, kilojoules, points_earned, raw_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            start_date_dt = datetime.datetime.fromisoformat(activity.get("start_date").replace("Z", "+00:00"))
-            start_date_local_dt = datetime.datetime.fromisoformat(activity.get("start_date_local").replace("Z", "")) 
-            
-            print(f"DEBUG: [fetch_strava_activities] Saving activity ID {activity_id} ('{activity.get('name')}') with {points_earned} points.")
-            cur.execute(sql_insert_activity, (
-                activity_id,
-                g.user["id"],
-                activity.get("name"),
-                activity.get("distance"),
-                activity.get("moving_time"),
-                activity.get("elapsed_time"),
-                activity_type,
-                start_date_dt,
-                start_date_local_dt,
-                activity.get("timezone"),
-                activity.get("total_elevation_gain"),
-                activity.get("average_speed"),
-                activity.get("max_speed"),
-                activity.get("kilojoules"),
-                points_earned,
-                json.dumps(activity) 
-            ))
-            
-            sql_update_user_points = "UPDATE users SET points = points + %s WHERE id = %s"
-            cur.execute(sql_update_user_points, (points_earned, g.user["id"]))
-            
-            activities_saved_count += 1
-            points_earned_total += points_earned
-        
-        conn.commit()
-        print(f"DEBUG: [fetch_strava_activities] DB commit successful. {activities_saved_count} activities saved, {points_earned_total} points earned.")
-        cur.close()
-        
-        if activities_saved_count > 0:
-            flash(f"{activities_saved_count} novas atividades do Strava foram importadas, totalizando {points_earned_total} pontos!", "success")
-        else:
-            flash("Nenhuma atividade nova (que gera pontos) encontrada no Strava desde a última busca.", "info")
-
-    except requests.exceptions.HTTPError as http_err:
-        error_details = traceback.format_exc()
-        if http_err.response.status_code == 401: 
-            print(f"!!! AUTH ERROR [fetch_strava_activities]: Strava token invalid or expired. {http_err}\n{error_details}")
-            flash("Sua conexão com o Strava expirou ou é inválida. Por favor, reconecte.", "warning")
-        else:
-            print(f"!!! HTTP ERROR [fetch_strava_activities]: {http_err}\n{error_details}")
-            flash(f"Erro ao buscar atividades do Strava (HTTP {http_err.response.status_code}).", "error")
-    except requests.exceptions.RequestException as req_err: 
-        error_details = traceback.format_exc()
-        print(f"!!! NETWORK ERROR [fetch_strava_activities]: {req_err}\n{error_details}")
-        flash("Erro de comunicação ao buscar atividades do Strava.", "error")
-    except (psycopg2.Error, Exception) as db_err: 
-        error_details = traceback.format_exc()
-        print(f"!!! DB/GENERAL ERROR [fetch_strava_activities] processing activities: {db_err}\n{error_details}")
-        if conn: conn.rollback()
-        flash("Erro ao salvar as atividades do Strava no banco de dados.", "error")
-    finally:
-        if conn:
-            print("DEBUG: [fetch_strava_activities] Closing DB connection.")
-            conn.close()
-
-    return redirect(url_for("conectar_apps_page"))
-
-@app.route("/conectar")
-@login_required
-def conectar_apps_page():
-    print("DEBUG: [conectar_apps_page] Entered route.")
-    strava_is_connected = bool(g.strava_token_data)
-    last_fetch_time = None 
-
-    if strava_is_connected:
-        conn = None
+    all_activities = []
+    page = 1
+    while True:
+        params["page"] = page
         try:
-            conn = get_db_connection()
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("SELECT MAX(created_at) as last_sync FROM strava_activities WHERE user_id = %s", (g.user['id'],))
-            result = cur.fetchone()
-            if result and result['last_sync']:
-                last_fetch_time = result['last_sync'].strftime("%d/%m/%Y %H:%M:%S")
-            cur.close()
-        except Exception as e:
-            print(f"!!! DB ERROR [conectar_apps_page] fetching last_sync: {e}")
-        finally:
-            if conn: conn.close()
+            print(f"DEBUG: [fetch_strava_activities] Requesting page {page} of activities from Strava for user {user_id}.")
+            response = requests.get(activities_url, headers=headers, params=params)
+            response.raise_for_status() # Lança exceção para erros HTTP 4xx/5xx
+            activities_page = response.json()
+            if not activities_page: # Se a página estiver vazia, não há mais atividades
+                print(f"DEBUG: [fetch_strava_activities] No more activities found on page {page} for user {user_id}.")
+                break
+            all_activities.extend(activities_page)
+            print(f"DEBUG: [fetch_strava_activities] Fetched {len(activities_page)} activities on page {page}. Total so far: {len(all_activities)}.")
+            if len(activities_page) < params["per_page"]:
+                 print(f"DEBUG: [fetch_strava_activities] Last page of activities reached for user {user_id}.")
+                 break # Última página
+            page += 1
+            if page > 5: # Limite de segurança para evitar loops infinitos em cenários inesperados
+                print(f"WARN: [fetch_strava_activities] Reached page limit (5) for user {user_id}. Stopping fetch.")
+                break
+        except requests.exceptions.RequestException as e_req:
+            print(f"!!! STRAVA API ERROR [fetch_strava_activities] fetching activities for user {user_id}: {e_req}")
+            flash("Erro ao buscar atividades do Strava. Tente novamente mais tarde.", "error")
+            return # Interrompe a busca em caso de erro de API
+        except json.JSONDecodeError as e_json:
+            print(f"!!! JSON ERROR [fetch_strava_activities] decoding Strava response for user {user_id}: {e_json}")
+            flash("Erro ao processar a resposta do Strava.", "error")
+            return
 
-    try:
-        print("DEBUG: [conectar_apps_page] Rendering conectar-apps.html")
-        return render_template("conectar-apps.html", 
-                               strava_connected=strava_is_connected,
-                               last_strava_fetch=last_fetch_time)
-    except Exception as render_error:
-        print(f"!!! Render ERROR [conectar_apps_page] rendering conectar-apps.html: {render_error}\n{traceback.format_exc()}")
-        return "Erro ao carregar a página de conexão de aplicativos.", 500
+    if not all_activities:
+        print(f"INFO: [fetch_strava_activities] No new activities found for user {user_id} since last fetch.")
+        return
 
-@app.route("/mural/item/<int:item_id>")
-@login_required
-def item_detail(item_id):
-    print(f"DEBUG: [item_detail] Accessed detail page for item ID: {item_id}")
-    conn = None
-    item = None
+    conn_insert = None
     try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        print(f"DEBUG: [item_detail] Fetching item ID {item_id} from DB")
-        cur.execute("""
-            SELECT 
-                di.id, di.title, di.description, di.category, 
-                di.status, di.image_url, di.created_at, 
-                u.username AS owner_username, 
-                di.location 
-            FROM donation_items di
-            JOIN users u ON di.user_id = u.id
-            WHERE di.id = %s
-        """, (item_id,))
-        item = cur.fetchone()
-        cur.close()
-        if item:
-            print(f"DEBUG: [item_detail] Item ID {item_id} fetched successfully: {item['title']}")
+        conn_insert = get_db_connection()
+        cur_insert = conn_insert.cursor()
+        print(f"DEBUG: [fetch_strava_activities] Preparing to insert/update {len(all_activities)} activities into DB for user {user_id}.")
+        activities_to_insert = []
+        points_to_add = 0
+        
+        # Tipos de atividade que contam pontos e seus multiplicadores (distância em metros)
+        # Ajuste os multiplicadores conforme necessário. Ex: 1 ponto por km de corrida.
+        # 1 km = 1000 metros. Se 1 ponto por km, então 1/1000 pontos por metro.
+        activity_point_multipliers = {
+            "Run": 0.001, "Walk": 0.001, "VirtualRun": 0.001, "TrailRun": 0.001, "Hike": 0.0005,
+            "Wheelchair": 0.001, "Snowshoe": 0.0005,
+            "Swim": 0.004, # Natação geralmente vale mais por distância
+            "VirtualRide": 0.0002, "Ride": 0.0002, "EBikeRide": 0.0001, "GravelRide": 0.0002,
+            "Handcycle": 0.0002, "MountainBikeRide": 0.0002,
+            "RollerSki": 0.0005, "NordicSki": 0.0005, "AlpineSki": 0.0001, "BackcountrySki": 0.0003,
+            "IceSkate": 0.0003, "InlineSkate": 0.0003,
+            "Rowing": 0.0008, "VirtualRow": 0.0008,
+            "Kayaking": 0.0005, "Canoeing": 0.0005, "StandUpPaddling": 0.0004,
+            # Atividades baseadas em tempo/esforço podem ter pontos fixos ou por duração
+            # Aqui, vamos focar em distância por enquanto, mas poderia ser expandido
+            "WeightTraining": 5, # Pontos fixos por sessão
+            "Workout": 5,
+            "Yoga": 3,
+            "Crossfit": 10,
+            "StairStepper": 0.002 # Exemplo, pode ser por tempo ou "andares"
+        }
+
+        for activity in all_activities:
+            activity_id = activity["id"]
+            activity_type = activity["type"]
+            distance_meters = activity.get("distance", 0)
+            moving_time_seconds = activity.get("moving_time", 0)
+            start_date_str = activity["start_date"]
+            start_date_dt = datetime.datetime.fromisoformat(start_date_str.replace("Z", "+00:00"))
+            start_date_epoch = int(start_date_dt.timestamp())
+
+            points_for_activity = 0
+            if activity_type in activity_point_multipliers:
+                if distance_meters > 0:
+                    points_for_activity = distance_meters * activity_point_multipliers[activity_type]
+                elif isinstance(activity_point_multipliers[activity_type], (int, float)) and activity_point_multipliers[activity_type] > 0.00001 : # Pontos fixos
+                    points_for_activity = activity_point_multipliers[activity_type]
+            
+            points_for_activity = math.ceil(points_for_activity) # Arredonda para cima
+            points_to_add += points_for_activity
+
+            activities_to_insert.append((
+                activity_id, user_id, strava_athlete_id, activity.get("name", "Atividade Strava"),
+                distance_meters, moving_time_seconds, activity.get("elapsed_time", 0),
+                activity_type, start_date_dt, activity.get("timezone"),
+                start_date_epoch, points_for_activity 
+            ))
+        
+        if activities_to_insert:
+            # Usar ON CONFLICT para evitar duplicatas e atualizar se necessário (ex: pontos recalculados)
+            sql_insert_activity = """
+                INSERT INTO strava_activities (
+                    id, user_id, strava_athlete_id, name, distance, moving_time, elapsed_time, 
+                    type, start_date, timezone, start_date_epoch, points_awarded
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    distance = EXCLUDED.distance,
+                    moving_time = EXCLUDED.moving_time,
+                    elapsed_time = EXCLUDED.elapsed_time,
+                    type = EXCLUDED.type,
+                    start_date = EXCLUDED.start_date,
+                    timezone = EXCLUDED.timezone,
+                    start_date_epoch = EXCLUDED.start_date_epoch,
+                    points_awarded = EXCLUDED.points_awarded; 
+            """
+            cur_insert.executemany(sql_insert_activity, activities_to_insert)
+            print(f"DEBUG: [fetch_strava_activities] Inserted/Updated {len(activities_to_insert)} activities in DB for user {user_id}.")
+
+            if points_to_add > 0:
+                cur_insert.execute("UPDATE users SET points = points + %s WHERE id = %s", (points_to_add, user_id))
+                print(f"DEBUG: [fetch_strava_activities] Added {points_to_add} points to user {user_id}.")
+            
+            conn_insert.commit()
+            print(f"DEBUG: [fetch_strava_activities] DB commit successful for user {user_id}.")
         else:
-            print(f"WARN: [item_detail] Item ID {item_id} not found in DB.")
-            flash("Item não encontrado.", "warning")
-            # Não redireciona daqui, deixa o template lidar com item=None
-    except (Exception, psycopg2.DatabaseError) as db_error:
-        error_details = traceback.format_exc()
-        print(f"!!! DB ERROR [item_detail] fetching item {item_id}: {db_error}\n{error_details}")
-        flash("Erro ao buscar detalhes do item.", "error")
-    finally:
-        if conn:
-            print("DEBUG: [item_detail] Closing DB connection.")
-            conn.close()
-    
-    try:
-        print(f"DEBUG: [item_detail] Rendering item_detail.html for item ID: {item_id}")
-        return render_template("item_detail.html", item=item)
-    except Exception as render_error:
-        print(f"!!! Render ERROR [item_detail] rendering item_detail.html: {render_error}\n{traceback.format_exc()}")
-        return "Erro ao carregar a página de detalhes do item.", 500
+            print(f"INFO: [fetch_strava_activities] No new activities qualified for DB insertion for user {user_id}.")
 
+        cur_insert.close()
+        flash(f"{len(all_activities)} atividades do Strava foram sincronizadas!", "info")
+
+    except (Exception, psycopg2.DatabaseError) as db_error_insert:
+        error_details = traceback.format_exc()
+        print(f"!!! DB ERROR [fetch_strava_activities] inserting activities for user {user_id}: {db_error_insert}\n{error_details}")
+        flash("Erro ao salvar as atividades do Strava no banco de dados.", "error")
+        if conn_insert: conn_insert.rollback()
+    finally:
+        if conn_insert:
+            conn_insert.close()
+
+# --- Ponto de Entrada Principal (para desenvolvimento local) ---
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    # Certifique-se de que as variáveis de ambiente são carregadas se não estiverem já definidas
+    if not os.environ.get("DATABASE_URL") or \
+       not os.environ.get("STRAVA_CLIENT_ID") or \
+       not os.environ.get("STRAVA_CLIENT_SECRET") or \
+       not os.environ.get("STRAVA_REDIRECT_URI"):
+        print("WARN: Variáveis de ambiente não totalmente configuradas. Carregando do .env se existir.")
+        load_dotenv()
+        # Verificar novamente após carregar do .env
+        if not os.environ.get("DATABASE_URL"):
+            print("!!! FATAL: DATABASE_URL não definida. A aplicação não pode iniciar.")
+            sys.exit(1)
+        if not os.environ.get("STRAVA_CLIENT_ID") or \
+           not os.environ.get("STRAVA_CLIENT_SECRET") or \
+           not os.environ.get("STRAVA_REDIRECT_URI"):
+            print("WARN: Configurações do Strava não totalmente definidas. A integração com o Strava pode falhar.")
+
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
