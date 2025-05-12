@@ -463,6 +463,7 @@ def mural_page():
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) # Para pegar como dict
         print("DEBUG: [mural_page] Fetching donation items from DB")
         # Adicionar JOIN com users para pegar o nome do doador
+        # CORREÇÃO: Alterado di.owner_user_id para di.user_id
         cur.execute("""
             SELECT 
                 di.id, di.title, di.description, di.category, 
@@ -470,7 +471,7 @@ def mural_page():
                 u.username AS owner_username, 
                 di.location 
             FROM donation_items di
-            JOIN users u ON di.owner_user_id = u.id
+            JOIN users u ON di.user_id = u.id
             ORDER BY di.created_at DESC
         """)
         items = cur.fetchall()
@@ -512,9 +513,9 @@ def add_donation_item_page():
             category = request.form.get("category")
             location = request.form.get("location")
             image_url = request.form.get("image_url") # Pode ser opcional
-            owner_user_id = g.user["id"]
+            current_user_id = g.user["id"] # CORREÇÃO: Usar current_user_id para clareza
             
-            print(f"DEBUG: [add_donation_item_page] Form data: title='{title}', category='{category}', owner='{owner_user_id}'")
+            print(f"DEBUG: [add_donation_item_page] Form data: title='{title}', category='{category}', owner='{current_user_id}'")
 
             if not title or not category:
                 print("WARN: [add_donation_item_page] Validation failed (title or category missing).")
@@ -524,13 +525,14 @@ def add_donation_item_page():
 
             conn = get_db_connection()
             cur = conn.cursor()
+            # CORREÇÃO: Alterado owner_user_id para user_id na query e no valor
             sql = """
                 INSERT INTO donation_items 
-                (title, description, category, owner_user_id, image_url, location, status)
+                (title, description, category, user_id, image_url, location, status)
                 VALUES (%s, %s, %s, %s, %s, %s, 'available')
             """
             print("DEBUG: [add_donation_item_page] Executing INSERT query for new donation item")
-            cur.execute(sql, (title, description, category, owner_user_id, image_url, location))
+            cur.execute(sql, (title, description, category, current_user_id, image_url, location))
             conn.commit()
             print("DEBUG: [add_donation_item_page] New item inserted and committed.")
             cur.close()
