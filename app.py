@@ -13,6 +13,8 @@ from flask import Flask, render_template, session, g, flash, redirect, url_for, 
 from dotenv import load_dotenv
 from functools import wraps
 from requests_oauthlib import OAuth2Session # Adicionado para OAuth
+# Importar exceções específicas do oauthlib para tratamento de erro mais robusto
+from oauthlib.oauth2.rfc6749.errors import InsecureTransportError, MissingTokenError, OAuth2Error
 from werkzeug.middleware.proxy_fix import ProxyFix # ADICIONADO PARA CORRIGIR HTTPS ATRÁS DE PROXY
 
 # Importar o blueprint de autenticação
@@ -428,10 +430,9 @@ def mural_page():
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         print("DEBUG: [mural_page] Fetching donation items from DB")
-        # Corrigido: di.owner_user_id para di.user_id
-        # Corrigido: u.name para u.username
+        # Corrigido: di.image_filename para di.image_url
         cur.execute("""
-            SELECT di.id, di.title, di.description, di.category, di.image_filename, di.created_at, u.username AS owner_username
+            SELECT di.id, di.title, di.description, di.category, di.image_url, di.created_at, u.username AS owner_username
             FROM donation_items di
             JOIN users u ON di.user_id = u.id 
             ORDER BY di.created_at DESC
@@ -467,8 +468,8 @@ def add_donation_item_page():
             title = request.form.get("title")
             description = request.form.get("description")
             category = request.form.get("category")
-            # Simulação de upload de imagem, apenas salvando o nome do arquivo
-            image_filename = request.form.get("image_filename", "default_item.png") 
+            # Corrigido: image_filename para image_url
+            image_url_value = request.form.get("image_url", "default_item.png") 
             owner_user_id = g.user["id"]
             print(f"DEBUG: [add_donation_item_page] Form data: title='{title}', category='{category}', owner='{owner_user_id}'")
 
@@ -480,10 +481,10 @@ def add_donation_item_page():
 
             conn = get_db_connection()
             cur = conn.cursor()
-            # Corrigido: owner_user_id para user_id na query e nos parâmetros
-            sql = "INSERT INTO donation_items (title, description, category, image_filename, user_id) VALUES (%s, %s, %s, %s, %s);"
+            # Corrigido: image_filename para image_url na query e nos parâmetros
+            sql = "INSERT INTO donation_items (title, description, category, image_url, user_id) VALUES (%s, %s, %s, %s, %s);"
             print("DEBUG: [add_donation_item_page] Executing INSERT query for new donation item")
-            cur.execute(sql, (title, description, category, image_filename, owner_user_id))
+            cur.execute(sql, (title, description, category, image_url_value, owner_user_id))
             conn.commit()
             print("DEBUG: [add_donation_item_page] New item inserted and committed.")
             cur.close()
@@ -517,8 +518,9 @@ def item_detail(item_id):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # Corrigido: di.image_filename para di.image_url
         cur.execute("""
-            SELECT di.id, di.title, di.description, di.category, di.image_filename, 
+            SELECT di.id, di.title, di.description, di.category, di.image_url, 
                    di.created_at, di.user_id, u.username AS owner_username
             FROM donation_items di
             JOIN users u ON di.user_id = u.id
@@ -663,14 +665,22 @@ def strava_callback():
         error_details = traceback.format_exc()
         print(f"!!! STRAVA SSL ERROR [strava_callback]: {ssl_err}\n{error_details}")
         flash(f"Erro de SSL ao comunicar com o Strava: {ssl_err}. Verifique a configuração do seu ambiente.", "error")
-    except oauthlib.oauth2.rfc6749.errors.InsecureTransportError as insecure_err:
+    except InsecureTransportError as insecure_err: # Captura específica de InsecureTransportError
         error_details = traceback.format_exc()
         print(f"!!! STRAVA INSECURE TRANSPORT ERROR [strava_callback]: {insecure_err}\n{error_details}")
         flash(f"Erro de transporte inseguro com o Strava: {insecure_err}. O callback deve ser HTTPS.", "error")
-    except Exception as e:
+    except MissingTokenError as missing_token_err: # Captura específica de MissingTokenError
         error_details = traceback.format_exc()
-        print(f"!!! STRAVA OAUTH ERROR [strava_callback] during token fetch or processing: {e}\n{error_details}")
-        flash(f"Ocorreu um erro durante a autenticação com o Strava: {e}. Tente novamente.", "error")
+        print(f"!!! STRAVA MISSING TOKEN ERROR [strava_callback]: {missing_token_err}\n{error_details}")
+        flash(f"Erro ao obter o token do Strava: {missing_token_err}. Verifique as configurações do aplicativo Strava e tente novamente.", "error")
+    except OAuth2Error as oauth_err: # Captura genérica para outros erros OAuth2
+        error_details = traceback.format_exc()
+        print(f"!!! STRAVA OAUTH2 GENERIC ERROR [strava_callback]: {oauth_err}\n{error_details}")
+        flash(f"Erro genérico na autenticação OAuth2 com o Strava: {oauth_err}. Tente novamente.", "error")
+    except Exception as e: # Captura para qualquer outra exceção não prevista
+        error_details = traceback.format_exc()
+        print(f"!!! STRAVA UNEXPECTED ERROR [strava_callback] during token fetch or processing: {e}\n{error_details}")
+        flash(f"Ocorreu um erro inesperado durante a autenticação com o Strava: {e}. Tente novamente.", "error")
 
     return redirect(url_for("conectar_apps_page"))
 
