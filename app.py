@@ -33,7 +33,8 @@ STRAVA_AUTHORIZATION_URL = "https://www.strava.com/oauth/authorize"
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 STRAVA_API_BASE_URL = "https://www.strava.com/api/v3"
 STRAVA_REDIRECT_URI = os.environ.get("STRAVA_REDIRECT_URI", "http://localhost:5000/strava/callback") 
-STRAVA_SCOPES = ["read", "activity:read_all"]
+# CORREÇÃO: Alterado "activity:read_all" para "activity:read"
+STRAVA_SCOPES = ["read", "activity:read"]
 
 # Registrar o blueprint de autenticação
 app.register_blueprint(auth_bp, url_prefix="/auth")
