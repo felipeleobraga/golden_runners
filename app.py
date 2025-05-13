@@ -121,7 +121,8 @@ def login_required(view):
 @app.route("/")
 def home():
     try: 
-        return render_template("home.html")
+        current_year = datetime.datetime.now().year
+        return render_template("home.html", current_year=current_year)
     except Exception as e: 
         print(f"!!! Render ERROR home: {e}\n{traceback.format_exc()}"); 
         return "Erro ao carregar página inicial.", 500
@@ -185,10 +186,12 @@ def dashboard():
                 conn.close()
 
     try: 
+        current_year = datetime.datetime.now().year
         return render_template("dashboard.html", 
                                user=user_data, 
                                strava_connected=strava_connected,
-                               strava_activities=strava_activities)
+                               strava_activities=strava_activities,
+                               current_year=current_year)
     except Exception as e: 
         print(f"!!! CRITICAL Render ERROR dashboard: {e}\n{traceback.format_exc()}") 
         return "Erro interno ao carregar o dashboard. Por favor, tente novamente mais tarde.", 500
@@ -245,10 +248,12 @@ def ranking_page():
             conn.close()
     
     try:
+        current_year = datetime.datetime.now().year
         print("DEBUG: [ranking_page] Rendering ranking.html with both rankings")
         return render_template("ranking.html", 
                                users_ranking=users_ranking, 
-                               teams_ranking=teams_ranking)
+                               teams_ranking=teams_ranking,
+                               current_year=current_year)
     except Exception as render_error:
         print(f"!!! Render ERROR [ranking_page] rendering ranking.html: {render_error}\n{traceback.format_exc()}")
         return "Erro ao carregar a página de ranking.", 500
@@ -287,8 +292,9 @@ def list_teams_page():
             conn.close()
 
     try:
+        current_year = datetime.datetime.now().year
         print("DEBUG: [list_teams_page] Attempting to render teams.html") 
-        return render_template("teams.html", teams=teams)
+        return render_template("teams.html", teams=teams, current_year=current_year)
     except Exception as render_error:
         print(f"!!! Render ERROR [list_teams_page] rendering teams.html: {render_error}\n{traceback.format_exc()}")
         return "Erro ao carregar a página de equipes.", 500
@@ -310,7 +316,8 @@ def create_team_page():
                 print("WARN: [create_team_page] Validation failed (name missing).")
                 flash("O nome da equipe é obrigatório.", "warning")
                 form_data = request.form
-                return render_template("create_team.html", form_data=form_data)
+                current_year = datetime.datetime.now().year
+                return render_template("create_team.html", form_data=form_data, current_year=current_year)
 
             conn = get_db_connection()
             cur = conn.cursor()
@@ -346,8 +353,9 @@ def create_team_page():
                 conn.close()
     
     try:
+        current_year = datetime.datetime.now().year
         print("DEBUG: [create_team_page] Rendering create_team.html for GET request or POST error")
-        return render_template("create_team.html", form_data=form_data)
+        return render_template("create_team.html", form_data=form_data, current_year=current_year)
     except Exception as render_error:
         print(f"!!! Render ERROR [create_team_page] rendering create_team.html: {render_error}\n{traceback.format_exc()}")
         return "Erro ao carregar a página de criação de equipe.", 500
@@ -430,7 +438,6 @@ def mural_page():
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         print("DEBUG: [mural_page] Fetching donation items from DB")
-        # Corrigido: di.image_filename para di.image_url
         cur.execute("""
             SELECT di.id, di.title, di.description, di.category, di.image_url, di.created_at, u.username AS owner_username
             FROM donation_items di
@@ -450,8 +457,9 @@ def mural_page():
             conn.close()
     
     try:
+        current_year = datetime.datetime.now().year
         print("DEBUG: [mural_page] Rendering mural.html")
-        return render_template("mural.html", items=donation_items)
+        return render_template("mural.html", items=donation_items, current_year=current_year)
     except Exception as render_error:
         print(f"!!! Render ERROR [mural_page] rendering mural.html: {render_error}\n{traceback.format_exc()}")
         return "Erro ao carregar o mural.", 500
@@ -468,7 +476,6 @@ def add_donation_item_page():
             title = request.form.get("title")
             description = request.form.get("description")
             category = request.form.get("category")
-            # Corrigido: image_filename para image_url
             image_url_value = request.form.get("image_url", "default_item.png") 
             owner_user_id = g.user["id"]
             print(f"DEBUG: [add_donation_item_page] Form data: title='{title}', category='{category}', owner='{owner_user_id}'")
@@ -477,11 +484,11 @@ def add_donation_item_page():
                 print("WARN: [add_donation_item_page] Validation failed (title or category missing).")
                 flash("Título e categoria são obrigatórios.", "warning")
                 form_data = request.form
-                return render_template("add_item.html", form_data=form_data)
+                current_year = datetime.datetime.now().year
+                return render_template("add_item.html", form_data=form_data, current_year=current_year)
 
             conn = get_db_connection()
             cur = conn.cursor()
-            # Corrigido: image_filename para image_url na query e nos parâmetros
             sql = "INSERT INTO donation_items (title, description, category, image_url, user_id) VALUES (%s, %s, %s, %s, %s);"
             print("DEBUG: [add_donation_item_page] Executing INSERT query for new donation item")
             cur.execute(sql, (title, description, category, image_url_value, owner_user_id))
@@ -503,8 +510,9 @@ def add_donation_item_page():
                 conn.close()
     
     try:
+        current_year = datetime.datetime.now().year
         print("DEBUG: [add_donation_item_page] Rendering add_item.html for GET or POST error")
-        return render_template("add_item.html", form_data=form_data)
+        return render_template("add_item.html", form_data=form_data, current_year=current_year)
     except Exception as render_error:
         print(f"!!! Render ERROR [add_donation_item_page] rendering add_item.html: {render_error}\n{traceback.format_exc()}")
         return "Erro ao carregar a página de adicionar item.", 500
@@ -518,7 +526,6 @@ def item_detail(item_id):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        # Corrigido: di.image_filename para di.image_url
         cur.execute("""
             SELECT di.id, di.title, di.description, di.category, di.image_url, 
                    di.created_at, di.user_id, u.username AS owner_username
@@ -542,7 +549,8 @@ def item_detail(item_id):
             conn.close()
     
     try:
-        return render_template("item_detail.html", item=item)
+        current_year = datetime.datetime.now().year # Adicionado para passar o ano atual
+        return render_template("item_detail.html", item=item, current_year=current_year)
     except Exception as render_error:
         print(f"!!! Render ERROR [item_detail] rendering item_detail.html: {render_error}\n{traceback.format_exc()}")
         return f"Erro ao carregar detalhes do item {item_id}.", 500
@@ -553,8 +561,9 @@ def conectar_apps_page():
     print("DEBUG: [conectar_apps_page] Entered route.")
     strava_connected = bool(g.strava_token_data)
     try:
+        current_year = datetime.datetime.now().year
         print("DEBUG: [conectar_apps_page] Rendering conectar-apps.html")
-        return render_template("conectar-apps.html", strava_connected=strava_connected)
+        return render_template("conectar-apps.html", strava_connected=strava_connected, current_year=current_year)
     except Exception as render_error:
         print(f"!!! Render ERROR [conectar_apps_page] rendering conectar-apps.html: {render_error}\n{traceback.format_exc()}")
         return "Erro ao carregar a página de conexão de aplicativos.", 500
