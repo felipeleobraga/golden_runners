@@ -4,6 +4,7 @@ gunicorn
 python-dotenv
 psycopg2-binary
 Werkzeug
+flask_sqlalchemy
 
 requests-oauthlib
 
