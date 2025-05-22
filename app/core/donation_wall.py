@@ -19,148 +19,124 @@ class DonationWallManager:
         """
         self.db = db_connector
         
-    def add_donation_item(self, user_id, title, description, category, location, image_path=None):
-        """
-        Adiciona um novo item ao mural de doações
-        
-        Args:
-            user_id (str): ID do usuário doador
-            title (str): Título do item
-            description (str): Descrição do item
-            category (str): Categoria do item (ex: 'tênis', 'roupas', 'acessórios')
-            location (str): Localização do item (cidade, estado)
-            image_path (str, optional): Caminho para a imagem do item
-            
-        Returns:
-            str: ID do item criado
-        """
-        item_id = str(uuid.uuid4())
-        now = datetime.now().isoformat()
-        
-        item = {
-            'id': item_id,
-            'user_id': user_id,
-            'title': title,
-            'description': description,
-            'category': category,
-            'location': location,
-            'image_path': image_path,
-            'status': 'available',  # available, reserved, donated
-            'created_at': now,
-            'updated_at': now
-        }
-        
-        # Em uma implementação real, salvaríamos no banco de dados
-        # self.db.insert('donation_items', item)
-        
-        return item_id
+from datetime import datetime
+import uuid
+from app.models.donation_item import DonationItem  # importa o modelo que representa o item no banco
+
+def add_donation_item(self, user_id, title, description, category, location, image_path=None):
+    """
+    Adiciona um novo item ao mural de doações e salva no banco de dados.
+
+    Args:
+        user_id (str): ID do usuário que está doando
+        title (str): Título do item
+        description (str): Descrição do item
+        category (str): Categoria (ex: 'tênis', 'roupas', etc)
+        location (str): Cidade e estado do item
+        image_path (str): Caminho opcional para a imagem do item
+
+    Returns:
+        str: ID único do item criado
+    """
+
+    # Gera um ID único para o item
+    item_id = str(uuid.uuid4())
+
+    # Captura a data e hora atual
+    now = datetime.utcnow()
+
+    # Cria uma instância do modelo DonationItem com os dados recebidos
+    new_item = DonationItem(
+        id=item_id,
+        user_id=user_id,
+        title=title,
+        description=description,
+        category=category,
+        location=location,
+        image_path=image_path,
+        status="available",       # status inicial: disponível
+        created_at=now,
+        updated_at=now
+    )
+
+    # Adiciona a instância à sessão do banco (mas ainda não executa)
+    self.db.session.add(new_item)
+
+    # Salva de fato no banco (faz commit da transação)
+    self.db.session.commit()
+
+    # Retorna o ID do item recém-criado
+    return item_id
+
     
-    def get_donation_items(self, filters=None, page=1, items_per_page=20):
-        """
-        Obtém itens do mural de doações com filtros opcionais
-        
-        Args:
-            filters (dict, optional): Filtros a serem aplicados (categoria, status, localização)
-            page (int, optional): Página de resultados
-            items_per_page (int, optional): Itens por página
-            
-        Returns:
-            dict: Itens de doação e metadados de paginação
-        """
-        # Em uma implementação real, consultaríamos o banco de dados
-        # Simulação de itens para exemplo
-        items = [
-            {
-                'id': '1',
-                'user_id': 'user1',
-                'title': 'Tênis de Corrida Nike',
-                'description': 'Tamanho 42, usado apenas 3 vezes',
-                'category': 'tênis',
-                'location': 'São Paulo, SP',
-                'image_path': '/images/tenis1.jpg',
-                'status': 'available',
-                'created_at': '2025-04-20T10:30:00',
-                'updated_at': '2025-04-20T10:30:00',
-                'user': {
-                    'name': 'Carlos S.',
-                    'profile_image': '/images/user1.jpg'
-                }
-            },
-            {
-                'id': '2',
-                'user_id': 'user2',
-                'title': 'Camiseta Esportiva Adidas',
-                'description': 'Tamanho M, nova com etiqueta',
-                'category': 'roupas',
-                'location': 'Rio de Janeiro, RJ',
-                'image_path': '/images/camiseta1.jpg',
-                'status': 'available',
-                'created_at': '2025-04-21T14:15:00',
-                'updated_at': '2025-04-21T14:15:00',
-                'user': {
-                    'name': 'Ana P.',
-                    'profile_image': '/images/user2.jpg'
-                }
-            },
-            {
-                'id': '3',
-                'user_id': 'user3',
-                'title': 'Garrafa Térmica 750ml',
-                'description': 'Em ótimo estado, sem arranhões',
-                'category': 'acessórios',
-                'location': 'Belo Horizonte, MG',
-                'image_path': '/images/garrafa1.jpg',
-                'status': 'reserved',
-                'created_at': '2025-04-19T09:45:00',
-                'updated_at': '2025-04-22T16:30:00',
-                'user': {
-                    'name': 'Marcos T.',
-                    'profile_image': '/images/user3.jpg'
-                }
-            }
-        ]
-        
-        # Aplicar filtros se fornecidos
-        if filters:
-            filtered_items = []
-            for item in items:
-                match = True
-                
-                if 'category' in filters and filters['category'] != 'all':
-                    if item['category'] != filters['category']:
-                        match = False
-                
-                if 'status' in filters and filters['status'] != 'all':
-                    if item['status'] != filters['status']:
-                        match = False
-                
-                if 'location' in filters and filters['location']:
-                    if filters['location'].lower() not in item['location'].lower():
-                        match = False
-                
-                if match:
-                    filtered_items.append(item)
-            
-            items = filtered_items
-        
-        # Calcular paginação
-        total_items = len(items)
-        total_pages = (total_items + items_per_page - 1) // items_per_page
-        
-        start_idx = (page - 1) * items_per_page
-        end_idx = start_idx + items_per_page
-        
-        paginated_items = items[start_idx:end_idx]
-        
-        return {
-            'items': paginated_items,
-            'pagination': {
-                'current_page': page,
-                'total_pages': total_pages,
-                'total_items': total_items,
-                'items_per_page': items_per_page
-            }
+from app.models.donation_item import DonationItem  # modelo do banco
+from sqlalchemy import or_  # opcional se quiser aplicar filtros com OU futuramente
+
+def get_donation_items(self, filters=None, page=1, items_per_page=20):
+    """
+    Busca itens do mural de doações no banco de dados, com filtros opcionais e paginação.
+
+    Args:
+        filters (dict, opcional): Filtros como categoria, status ou location.
+        page (int): Página atual dos resultados (padrão: 1)
+        items_per_page (int): Quantidade de itens por página (padrão: 20)
+
+    Returns:
+        dict: Resultado paginado com os itens:
+        {
+            "total": int,      # total de resultados encontrados
+            "page": int,       # página atual
+            "items": [         # lista de dicionários com os itens
+                {...}, {...}
+            ]
         }
+    """
+
+    # Começa uma query base em cima da tabela DonationItem
+    query = DonationItem.query
+
+    # Aplica filtros caso tenham sido enviados
+    if filters:
+        # Filtro por categoria com busca parcial (ex: "%roupa%")
+        if "category" in filters:
+            query = query.filter(DonationItem.category.ilike(f"%{filters['category']}%"))
+
+        # Filtro por status exato (available, reserved, donated)
+        if "status" in filters:
+            query = query.filter(DonationItem.status == filters["status"])
+
+        # Filtro por localização (cidade/estado)
+        if "location" in filters:
+            query = query.filter(DonationItem.location.ilike(f"%{filters['location']}%"))
+
+    # Aplica ordenação por data de criação (mais recentes primeiro)
+    # e faz a paginação (LIMIT + OFFSET)
+    paginated = query.order_by(DonationItem.created_at.desc()) \
+                     .paginate(page=page, per_page=items_per_page, error_out=False)
+
+    # Transforma os objetos em dicionários para retornar no JSON
+    items = []
+    for item in paginated.items:
+        items.append({
+            "id": item.id,
+            "user_id": item.user_id,
+            "title": item.title,
+            "description": item.description,
+            "category": item.category,
+            "location": item.location,
+            "image_path": item.image_path,
+            "status": item.status,
+            "created_at": item.created_at.isoformat(),
+            "updated_at": item.updated_at.isoformat()
+        })
+
+    # Retorna estrutura com paginação
+    return {
+        "total": paginated.total,
+        "page": paginated.page,
+        "items": items
+    }
+
     
     def get_donation_item(self, item_id):
         """

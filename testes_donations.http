@@ -1,0 +1,38 @@
+### Teste GET com filtros codificados
+GET http://localhost:5000/donations?category=t%C3%AAnis&status=available&location=S%C3%A3o%20Paulo&page=1&items_per_page=5
+Accept: application/json
+
+### Teste GET simples (sem filtros)
+GET http://localhost:5000/donations
+Accept: application/json
+
+### Teste GET por ID (substitua pelo ID válido gerado no banco)
+GET http://localhost:5000/donations/7a1c3d3a-6ac3-4b87-a1d0-2fa2124a7c28
+Accept: application/json
+
+
+### Criar item 1
+POST http://localhost:5000/items
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "title": "Tênis de Corrida Nike",
+  "description": "Usado apenas 3 vezes. Ótimo estado.",
+  "category": "tênis",
+  "location": "São Paulo, SP",
+  "image_path": "/images/tenis-nike.jpg"
+}
+
+### Criar item 2
+POST http://localhost:5000/items
+Content-Type: application/json
+
+{
+  "user_id": 2,
+  "title": "Jaqueta Impermeável",
+  "description": "Perfeita para trilhas.",
+  "category": "roupas",
+  "location": "Curitiba, PR",
+  "image_path": "/images/jaqueta.jpg"
+}
