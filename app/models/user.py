@@ -1,4 +1,4 @@
-from flask_sqlalchemy import SQLAlchemy
+from app.models.db_instance import db
 from datetime import datetime
 from app.models.fitness_account import FitnessAccount
 

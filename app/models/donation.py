@@ -1,4 +1,4 @@
-from app.models.user import db
+from app.models.db_instance import db
 from datetime import datetime
 
 class Donation(db.Model):

@@ -1,4 +1,4 @@
-from app.models.user import db
+from app.models.db_instance import db
 
 class FitnessAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)

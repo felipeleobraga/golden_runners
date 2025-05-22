@@ -1,6 +1,5 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from app.models.user import db
+from app.models.db_instance import db
 from app.models import user, donation_item  # importa os arquivos para registrar os modelos
 
 
