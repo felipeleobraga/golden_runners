@@ -1,1 +1,1 @@
-web: gunicorn run:app --reload --log-level debug
+web: gunicorn "app:create_app()"
