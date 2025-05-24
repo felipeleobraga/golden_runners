@@ -17,9 +17,13 @@ def create_app():
     from app.routes.main_routes import main
     from app.routes.donation_routes import donation
     from app.routes.fitness_routes import fitness
+    from app.routes.auth_routes import auth
+
 
     app.register_blueprint(main)
     app.register_blueprint(donation)
     app.register_blueprint(fitness)
+    app.register_blueprint(auth)
+
 
     return app
