@@ -19,9 +19,19 @@ def create_app():
 
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'
 
-    # Registra os blueprints
+    from app.models.user import User
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    # Imports dos blueprints
+    from app.routes.main_routes import main
+    from app.routes.donation_routes import donation
+    from app.routes.fitness_routes import fitness
+    from app.routes.auth_routes import auth
+
     app.register_blueprint(main)
     app.register_blueprint(donation)
     app.register_blueprint(fitness)
