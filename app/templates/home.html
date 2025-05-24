@@ -30,8 +30,13 @@
                 <a href="#" class="hover:text-yellow-400">Mural de Doações</a>
             </div>
             <div class="flex items-center space-x-4">
-                <a href="{{ url_for('auth.login') }}" class="hover:text-yellow-400">Entrar</a>
-                <a href="{{ url_for('auth.register') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-full">Cadastrar</a>
+            {% if current_user.is_authenticated %}
+            <span class="text-white mr-4">Bem-vindo, {{ current_user.nome }}</span>
+            <a href="{{ url_for('auth.logout') }}" class="hover:text-yellow-400">Sair</a>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="hover:text-yellow-400">Entrar</a>
+            <a href="{{ url_for('auth.register') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-full">Cadastrar</a>
+            {% endif %}
             </div>
             <button class="md:hidden focus:outline-none">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
