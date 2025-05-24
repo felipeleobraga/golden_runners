@@ -1,13 +1,14 @@
+# app/__init__.py
+
 from flask import Flask
 from app.models.db_instance import db, login_manager
-from app.models.user import User
 from app.models.fitness_account import FitnessAccount
 from app.models.activity import Activity
 from app.models.donation_item import DonationItem
 from app.models.donation import Donation
 from app.models.challenge import Challenge
 
-# IMPORTANTE: importe corretamente os blueprints
+# Importações dos blueprints
 from app.routes.main_routes import main
 from app.routes.donation_routes import donation
 from app.routes.fitness_routes import fitness
@@ -20,18 +21,14 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
+    # Importar o User aqui, DEPOIS da criação da app
     from app.models.user import User
 
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Imports dos blueprints
-    from app.routes.main_routes import main
-    from app.routes.donation_routes import donation
-    from app.routes.fitness_routes import fitness
-    from app.routes.auth_routes import auth
-
+    # Registrar blueprints
     app.register_blueprint(main)
     app.register_blueprint(donation)
     app.register_blueprint(fitness)
