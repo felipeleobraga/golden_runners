@@ -13,9 +13,10 @@ def create_app():
 
     db.init_app(app)
 
-    from routes.main_routes import main
-    from routes.donation_routes import donation
-    from routes.fitness_routes import fitness
+    # Imports dos blueprints
+    from app.routes.main_routes import main
+    from app.routes.donation_routes import donation
+    from app.routes.fitness_routes import fitness
 
     app.register_blueprint(main)
     app.register_blueprint(donation)
