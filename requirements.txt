@@ -1,7 +1,9 @@
-Flask
-Flask-SQLAlchemy
-Flask-Login
-gunicorn
-Werkzeug
-psycopg2-binary
-requests
+Flask==3.0.2
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.1
+email-validator==2.1.1
+gunicorn==21.2.0
+psycopg2-binary==2.9.10
+requests==2.32.2
+requests-oauthlib==2.0.0
