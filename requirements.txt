@@ -4,3 +4,4 @@ Flask-Login
 gunicorn
 Werkzeug
 psycopg2-binary
+requests
