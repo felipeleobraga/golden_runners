@@ -9,5 +9,5 @@ class Activity(db.Model):
     calorias = db.Column(db.Float)
     data = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     doacao_id = db.Column(db.Integer, db.ForeignKey("donation.id"), nullable=True)

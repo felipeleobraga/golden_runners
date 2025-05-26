@@ -1,10 +1,6 @@
 Flask
-requests
+Flask-SQLAlchemy
+Flask-Login
 gunicorn
-python-dotenv
-psycopg2-binary
 Werkzeug
-flask_sqlalchemy
-flask-login
-
-requests-oauthlib
+psycopg2-binary

@@ -3,7 +3,7 @@ from datetime import datetime
 
 class DonationItem(db.Model):
     id = db.Column(db.String(100), primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     title = db.Column(db.String(100))
     description = db.Column(db.Text)
     category = db.Column(db.String(50))

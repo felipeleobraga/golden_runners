@@ -1,167 +1,147 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Golden Runners</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        /* Estilos adicionais podem ser colocados aqui se necessário */
-        .flash-message {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 0.25rem;
-            font-weight: bold;
-        }
-        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .flash-info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Golden Runners</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .flash-message {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 0.25rem;
+      font-weight: bold;
+    }
+    .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .flash-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .flash-info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+  </style>
 </head>
 <body class="bg-gray-100 font-sans flex flex-col min-h-screen">
 
-    <!-- Navbar (Consistente com outros templates) -->
-    <nav class="bg-black text-white shadow-lg">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center">
-                <a href="{{ url_for("home") }}" class="flex items-center">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAwMDAiLz48cGF0aCBkPSJNMTAgMTBIMjBWMjBIMTBWMTBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDEwSDQwVjIwSDMwVjEwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiNGRkZGRkYiLz48cGF0aCBkPSJNMTAgMzBIMjBWNDBIMTBWMzBaIiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZD0iTTMwIDMwSDQwVjQwSDMwVjMwWiIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik01IDI1TDEwIDIwTDEwIDMwTDUgMjVaIiBmaWxsPSIjRkZEMzAwIi8+PC9zdmc+" alt="Logo" class="h-10 w-10">
-                    <span class="ml-3 text-xl font-bold">Golden Runners</span>
-                </a>
-            </div>
-            <div class="hidden md:flex space-x-8">
-                <a href="{{ url_for("dashboard") }}" class="hover:text-yellow-400">Dashboard</a>
-                <a href="{{ url_for("ranking_page") }}" class="hover:text-yellow-400">Ranking</a>
-                <a href="{{ url_for("list_teams_page") }}" class="hover:text-yellow-400">Equipes</a> <!-- Link Adicionado -->
-                <a href="#" class="hover:text-yellow-400">Atividades</a>
-                <a href="#" class="hover:text-yellow-400">Impacto</a>
-                <a href="{{ url_for("mural_page") }}" class="hover:text-yellow-400">Mural de Doações</a>
-            </div>
-            <div class="flex items-center space-x-4">
-                {% if g.user %}
-                    <span class="text-gray-300">Olá, {{ g.user.username }}</span>
-                    <a href="{{ url_for("auth.logout") }}" class="hover:text-yellow-400">Sair</a>
-                {% else %}
-                    <a href="{{ url_for("auth.login") }}" class="hover:text-yellow-400">Login</a>
-                    <a href="{{ url_for("auth.register") }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
-                {% endif %}
-                <div class="relative">
-                    <img src="https://via.placeholder.com/40" alt="Profile" class="h-10 w-10 rounded-full border-2 border-yellow-500">
-                </div>
-                <button class="md:hidden focus:outline-none">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Conteúdo do Dashboard -->
-    <main class="container mx-auto px-4 py-8 flex-grow">
-        <h1 class="text-3xl font-bold mb-6">Meu Dashboard</h1>
-
-        <!-- Mensagens Flash -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="mb-4">
-            {% for category, message in messages %}
-              <div class="flash-message flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Card Resumo -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-2">Resumo</h2>
-                <p class="text-lg font-bold text-yellow-600 mb-2">Pontos: {{ user.points }}</p>
-                <p><strong>Total KM Percorridos:</strong> {{ user.total_km }} km</p>
-                <p><strong>Total Doado:</strong> R$ {{ "%.2f"|format(user.total_donated) }}</p>
-                <p><strong>Última Atividade:</strong> {{ user.last_activity }}</p>
-            </div>
-
-            <!-- Card Conectar Apps -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-2">Conectar Apps</h2>
-                <!-- DEBUG: strava_connected = {{ strava_connected }} -->
-                {% if strava_connected %}
-                    <p class="text-green-600 mb-2">Conta Strava conectada!</p>
-                    <a href="{{ url_for("conectar_apps_page") }}" class="text-blue-500 hover:underline">Gerenciar conexão</a>
-                {% else %}
-                    <p class="mb-4">Sincronize suas atividades automaticamente.</p>
-                    <a href="{{ url_for("conectar_apps_page") }}" 
-                       class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Conectar Strava
-                    </a>
-                {% endif %}
-            </div>
-
-            <!-- Card Mural de Doações -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-2">Mural de Doações</h2>
-                <p class="mb-4">Doe ou encontre itens.</p>
-                <a href="{{ url_for("mural_page") }}" 
-                   class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Ver Mural
-                </a>
-            </div>
-            
-            <!-- Adicionar mais cards conforme necessário -->
-
-        </div>
-
-        <!-- Seção de Atividades Recentes do Strava -->
-        {% if strava_connected %}
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Últimas Atividades do Strava</h2>
-            {% if strava_activities %}
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distância</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% for activity in strava_activities %}
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ activity.name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.start_date.strftime("%d/%m/%Y %H:%M") }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.type }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "%.2f km"|format(activity.distance / 1000) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {% set hours = activity.moving_time // 3600 %}
-                                    {% set minutes = (activity.moving_time % 3600) // 60 %}
-                                    {% set seconds = activity.moving_time % 60 %}
-                                    {{ "%02d:%02d:%02d"|format(hours, minutes, seconds) }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <p class="text-gray-500">Nenhuma atividade recente encontrada. Clique em "Buscar Atividades Recentes" na <a href="{{ url_for("conectar_apps_page") }}" class="text-blue-500 hover:underline">página de conexão</a>.</p>
-            {% endif %}
-        </div>
+  <!-- Navbar -->
+  <nav class="bg-black text-white shadow-lg">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center">
+        <a href="{{ url_for('main.home') }}" class="flex items-center">
+          <img src="data:image/svg+xml;base64,..." alt="Logo" class="h-10 w-10">
+          <span class="ml-3 text-xl font-bold">Golden Runners</span>
+        </a>
+      </div>
+      <div class="hidden md:flex space-x-8">
+        <a href="{{ url_for('main.dashboard') }}" class="hover:text-yellow-400">Dashboard</a>
+        <a href="{{ url_for('ranking_page') }}" class="hover:text-yellow-400">Ranking</a>
+        <a href="{{ url_for('list_teams_page') }}" class="hover:text-yellow-400">Equipes</a>
+        <a href="#" class="hover:text-yellow-400">Atividades</a>
+        <a href="#" class="hover:text-yellow-400">Impacto</a>
+        <a href="{{ url_for('main.mural_page') }}" class="hover:text-yellow-400">Mural de Doações</a>
+      </div>
+      <div class="flex items-center space-x-4">
+        {% if current_user.is_authenticated %}
+          <span class="text-gray-300">Olá, {{ current_user.nome }}</span>
+          <a href="{{ url_for('auth.logout') }}" class="hover:text-yellow-400">Sair</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="hover:text-yellow-400">Login</a>
+          <a href="{{ url_for('auth.register') }}" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm">Registrar</a>
         {% endif %}
-
-    </main>
-
-    <!-- Footer (Consistente com outros templates) -->
-    <footer class="bg-gray-900 text-white py-6 mt-auto">
-        <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2025 Golden Runners. Todos os direitos reservados.</p>
+        <div class="relative">
+          <img src="https://via.placeholder.com/40" alt="Profile" class="h-10 w-10 rounded-full border-2 border-yellow-500">
         </div>
-    </footer>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo -->
+  <main class="container mx-auto px-4 py-8 flex-grow">
+    <h1 class="text-3xl font-bold mb-6">Meu Dashboard</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-4">
+          {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Resumo -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-2">Resumo</h2>
+        <p class="text-lg font-bold text-yellow-600 mb-2">Pontos: {{ current_user.points }}</p>
+        <p><strong>Total KM Percorridos:</strong> {{ current_user.total_km }} km</p>
+        <p><strong>Total Doado:</strong> R$ {{ "%.2f"|format(current_user.total_donated) }}</p>
+        <p><strong>Última Atividade:</strong> {{ current_user.last_activity }}</p>
+      </div>
+
+      <!-- Conectar Apps -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-2">Conectar Apps</h2>
+        {% if strava_connected %}
+          <p class="text-green-600 mb-2">Conta Strava conectada!</p>
+          <a href="{{ url_for('conectar_apps_page') }}" class="text-blue-500 hover:underline">Gerenciar conexão</a>
+        {% else %}
+          <p class="mb-4">Sincronize suas atividades automaticamente.</p>
+          <a href="{{ url_for('conectar_apps_page') }}" class="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded">Conectar Strava</a>
+        {% endif %}
+      </div>
+
+      <!-- Mural -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-2">Mural de Doações</h2>
+        <p class="mb-4">Doe ou encontre itens.</p>
+        <a href="{{ url_for('main.mural_page') }}" class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">Ver Mural</a>
+      </div>
+    </div>
+
+    {% if strava_connected %}
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Últimas Atividades do Strava</h2>
+      {% if strava_activities %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distância</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for activity in strava_activities %}
+              <tr>
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ activity.name }}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ activity.start_date.strftime("%d/%m/%Y %H:%M") }}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ activity.type }}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ "%.2f km"|format(activity.distance / 1000) }}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">
+                  {% set h = activity.moving_time // 3600 %}
+                  {% set m = (activity.moving_time % 3600) // 60 %}
+                  {% set s = activity.moving_time % 60 %}
+                  {{ "%02d:%02d:%02d"|format(h, m, s) }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-gray-500">Nenhuma atividade recente encontrada. Acesse a <a href="{{ url_for('conectar_apps_page') }}" class="text-blue-500 hover:underline">página de conexão</a>.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white py-6 mt-auto">
+    <div class="container mx-auto px-4 text-center">
+      <p>&copy; 2025 Golden Runners. Todos os direitos reservados.</p>
+    </div>
+  </footer>
 
 </body>
 </html>
-

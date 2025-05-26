@@ -8,4 +8,4 @@ class FitnessAccount(db.Model):
     token_secret = db.Column(db.Text)
     expires_at = db.Column(db.Integer)
     
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)

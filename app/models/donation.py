@@ -6,5 +6,5 @@ class Donation(db.Model):
     valor = db.Column(db.Float)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     atividades = db.relationship("Activity", backref="doacao", lazy=True)
