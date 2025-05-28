@@ -1,5 +1,5 @@
 import os
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
-SQLALCHEMY_DATABASE_URI = ""
+SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
 SQLALCHEMY_TRACK_MODIFICATIONS = False
