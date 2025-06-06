@@ -305,7 +305,8 @@ if __name__ == "__main__":
     # Buscar itens com filtros
     filters = {'category': 'tenis', 'status': 'available'}
     result = donation_wall.get_donation_items(filters, page=1, items_per_page=10)
-    
-    print(f"Encontrados {result['pagination']['total_items']} itens")
+
+    # O resultado contém 'total', 'page' e 'items'
+    print(f"Encontrados {result['total']} itens")
     for item in result['items']:
         print(f"- {item['title']} ({item['location']}) - {item['status']}")
