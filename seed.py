@@ -13,7 +13,7 @@ with app.app_context():
     db.create_all()
 
     # Usuário exemplo
-    user_id = 1x
+    user_id = 1
 
     # Doações de exemplo
     items = [
