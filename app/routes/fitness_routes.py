@@ -3,7 +3,11 @@ from app.services.fitness_service import (
     get_strava_authorization_url,
     handle_strava_callback,
     fetch_strava_activities,
-    process_strava_activity
+    process_strava_activity,
+    get_garmin_authorization_url,
+    handle_garmin_callback,
+    fetch_garmin_activities,
+    process_garmin_activity,
 )
 
 fitness = Blueprint("fitness", __name__)
