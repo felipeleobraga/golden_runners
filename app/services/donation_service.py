@@ -1,6 +1,5 @@
 from app.core.donation_wall import DonationWallManager
 from app.models.db_instance import db
-from app.models.donation_item import DonationItem
 
 mural = DonationWallManager(db_connector=db)
 
@@ -34,20 +33,4 @@ def express_interest(item_id, user_data):
 
 
 def get_donation_item(item_id):
-    """Recupera os detalhes de um item de doação pelo ID."""
-    item = DonationItem.query.get(item_id)
-    if not item:
-        return None
-    return {
-        "id": item.id,
-        "user_id": item.user_id,
-        "title": item.title,
-        "description": item.description,
-        "category": item.category,
-        "location": item.location,
-        "image_path": item.image_path,
-        "image_url": item.image_path,
-        "status": item.status,
-        "created_at": item.created_at.isoformat(),
-        "updated_at": item.updated_at.isoformat(),
-    }
+    return mural.get_donation_item(item_id)
