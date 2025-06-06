@@ -4,6 +4,8 @@ Módulo para gerenciar o mural de doações do Golden Runners
 import os
 import uuid
 from datetime import datetime
+from app.models.donation_item import DonationItem
+from sqlalchemy import or_
 
 class DonationWallManager:
     """
@@ -18,124 +20,118 @@ class DonationWallManager:
             db_connector: Conector para o banco de dados
         """
         self.db = db_connector
-        
-from datetime import datetime
-import uuid
-from app.models.donation_item import DonationItem  # importa o modelo que representa o item no banco
 
-def add_donation_item(self, user_id, title, description, category, location, image_path=None):
-    """
-    Adiciona um novo item ao mural de doações e salva no banco de dados.
-
-    Args:
-        user_id (str): ID do usuário que está doando
-        title (str): Título do item
-        description (str): Descrição do item
-        category (str): Categoria (ex: 'tênis', 'roupas', etc)
-        location (str): Cidade e estado do item
-        image_path (str): Caminho opcional para a imagem do item
-
-    Returns:
-        str: ID único do item criado
-    """
-
-    # Gera um ID único para o item
-    item_id = str(uuid.uuid4())
-
-    # Captura a data e hora atual
-    now = datetime.utcnow()
-
-    # Cria uma instância do modelo DonationItem com os dados recebidos
-    new_item = DonationItem(
-        id=item_id,
-        user_id=user_id,
-        title=title,
-        description=description,
-        category=category,
-        location=location,
-        image_path=image_path,
-        status="available",       # status inicial: disponível
-        created_at=now,
-        updated_at=now
-    )
-
-    # Adiciona a instância à sessão do banco (mas ainda não executa)
-    self.db.session.add(new_item)
-
-    # Salva de fato no banco (faz commit da transação)
-    self.db.session.commit()
-
-    # Retorna o ID do item recém-criado
-    return item_id
+    def add_donation_item(self, user_id, title, description, category, location, image_path=None):
+        """
+        Adiciona um novo item ao mural de doações e salva no banco de dados.
+    
+        Args:
+            user_id (str): ID do usuário que está doando
+            title (str): Título do item
+            description (str): Descrição do item
+            category (str): Categoria (ex: 'tênis', 'roupas', etc)
+            location (str): Cidade e estado do item
+            image_path (str): Caminho opcional para a imagem do item
+    
+        Returns:
+            str: ID único do item criado
+        """
+    
+        # Gera um ID único para o item
+        item_id = str(uuid.uuid4())
+    
+        # Captura a data e hora atual
+        now = datetime.utcnow()
+    
+        # Cria uma instância do modelo DonationItem com os dados recebidos
+        new_item = DonationItem(
+            id=item_id,
+            user_id=user_id,
+            title=title,
+            description=description,
+            category=category,
+            location=location,
+            image_path=image_path,
+            status="available",       # status inicial: disponível
+            created_at=now,
+            updated_at=now
+        )
+    
+        # Adiciona a instância à sessão do banco (mas ainda não executa)
+        self.db.session.add(new_item)
+    
+        # Salva de fato no banco (faz commit da transação)
+        self.db.session.commit()
+    
+        # Retorna o ID do item recém-criado
+        return item_id
 
     
-from app.models.donation_item import DonationItem  # modelo do banco
-from sqlalchemy import or_  # opcional se quiser aplicar filtros com OU futuramente
 
-def get_donation_items(self, filters=None, page=1, items_per_page=20):
-    """
-    Busca itens do mural de doações no banco de dados, com filtros opcionais e paginação.
-
-    Args:
-        filters (dict, opcional): Filtros como categoria, status ou location.
-        page (int): Página atual dos resultados (padrão: 1)
-        items_per_page (int): Quantidade de itens por página (padrão: 20)
-
-    Returns:
-        dict: Resultado paginado com os itens:
-        {
-            "total": int,      # total de resultados encontrados
-            "page": int,       # página atual
-            "items": [         # lista de dicionários com os itens
-                {...}, {...}
-            ]
+    def get_donation_items(self, filters=None, page=1, items_per_page=20):
+        """
+        Busca itens do mural de doações no banco de dados, com filtros opcionais e paginação.
+    
+        Args:
+            filters (dict, opcional): Filtros como categoria, status ou location.
+            page (int): Página atual dos resultados (padrão: 1)
+            items_per_page (int): Quantidade de itens por página (padrão: 20)
+    
+        Returns:
+            dict: Resultado paginado com os itens:
+            {
+                "total": int,      # total de resultados encontrados
+                "page": int,       # página atual
+                "items": [         # lista de dicionários com os itens
+                    {...}, {...}
+                ]
+            }
+        """
+    
+        # Começa uma query base em cima da tabela DonationItem
+        query = DonationItem.query
+    
+        # Aplica filtros caso tenham sido enviados
+        if filters:
+            # Filtro por categoria com busca parcial (ex: "%roupa%")
+            if "category" in filters:
+                query = query.filter(DonationItem.category.ilike(f"%{filters['category']}%"))
+    
+            # Filtro por status exato (available, reserved, donated)
+            if "status" in filters:
+                query = query.filter(DonationItem.status == filters["status"])
+    
+            # Filtro por localização (cidade/estado)
+            if "location" in filters:
+                query = query.filter(DonationItem.location.ilike(f"%{filters['location']}%"))
+    
+        # Aplica ordenação por data de criação (mais recentes primeiro)
+        # e faz a paginação (LIMIT + OFFSET)
+        paginated = query.order_by(DonationItem.created_at.desc()) \
+                         .paginate(page=page, per_page=items_per_page, error_out=False)
+    
+        # Transforma os objetos em dicionários para retornar no JSON
+        items = []
+        for item in paginated.items:
+            items.append({
+                "id": item.id,
+                "user_id": item.user_id,
+                "title": item.title,
+                "description": item.description,
+                "category": item.category,
+                "location": item.location,
+                "image_path": item.image_path,
+                "status": item.status,
+                "created_at": item.created_at.isoformat(),
+                "updated_at": item.updated_at.isoformat()
+            })
+    
+        # Retorna estrutura com paginação
+        return {
+            "total": paginated.total,
+            "page": paginated.page,
+            "items": items
         }
-    """
-
-    # Começa uma query base em cima da tabela DonationItem
-    query = DonationItem.query
-
-    # Aplica filtros caso tenham sido enviados
-    if filters:
-        # Filtro por categoria com busca parcial (ex: "%roupa%")
-        if "category" in filters:
-            query = query.filter(DonationItem.category.ilike(f"%{filters['category']}%"))
-
-        # Filtro por status exato (available, reserved, donated)
-        if "status" in filters:
-            query = query.filter(DonationItem.status == filters["status"])
-
-        # Filtro por localização (cidade/estado)
-        if "location" in filters:
-            query = query.filter(DonationItem.location.ilike(f"%{filters['location']}%"))
-
-    # Aplica ordenação por data de criação (mais recentes primeiro)
-    # e faz a paginação (LIMIT + OFFSET)
-    paginated = query.order_by(DonationItem.created_at.desc()) \
-                     .paginate(page=page, per_page=items_per_page, error_out=False)
-
-    # Transforma os objetos em dicionários para retornar no JSON
-    items = []
-    for item in paginated.items:
-        items.append({
-            "id": item.id,
-            "user_id": item.user_id,
-            "title": item.title,
-            "description": item.description,
-            "category": item.category,
-            "location": item.location,
-            "image_path": item.image_path,
-            "status": item.status,
-            "created_at": item.created_at.isoformat(),
-            "updated_at": item.updated_at.isoformat()
-        })
-
-    # Retorna estrutura com paginação
-    return {
-        "total": paginated.total,
-        "page": paginated.page,
-        "items": items
-    }
 
     
     def get_donation_item(self, item_id):
