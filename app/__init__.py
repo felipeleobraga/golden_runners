@@ -14,6 +14,7 @@ from app.routes.donation_routes import donation
 from app.routes.fitness_routes import fitness
 from app.routes.auth_routes import auth
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_pyfile('../config.py')
